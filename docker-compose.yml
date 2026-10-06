@@ -35,6 +35,24 @@ services:
         "up"
       ]
 
+  migrate-test:
+    image: migrate/migrate
+    volumes:
+    - ./migrations:/migrations
+    environment:
+      PGUSER: ${POSTGRES_USER}
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: 
+      [
+        "-path", "/migrations",
+        "-database",
+        "postgres://postgres:5432/${POSTGRES_DB_TEST}?sslmode=disable",
+        "up"
+      ]
+
   scoreup_train:
     build: .
     depends_on:
