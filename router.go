@@ -6,6 +6,7 @@ import (
 
 	"github.com/calmarie/scoreup_train/internal/healthcheck"
 	"github.com/calmarie/scoreup_train/internal/question"
+	"github.com/calmarie/scoreup_train/internal/users"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -17,6 +18,8 @@ func new(
 	mux.Handle("GET /health", healthcheck.NewHealthHandler(db, logger))
 	handler := question.NewHandler(question.NewService(question.NewRepository(db)), logger)
 	handler.RegisterRoutes(mux)
+	usersHandler := users.NewHandler(users.NewService(users.NewRepository(db)), logger)
+	usersHandler.RegisterRoutes(mux)
 
 	return mux
 }
