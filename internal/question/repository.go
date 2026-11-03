@@ -80,3 +80,7 @@ func postgresUnavailable(code string) bool {
 	return len(code) >= 2 && (code[:2] == "08" || code[:2] == "53") ||
 		code == "57P01" || code == "57P02" || code == "57P03"
 }
+
+// func (r *Repository) SaveAnswer() (error){
+
+// }

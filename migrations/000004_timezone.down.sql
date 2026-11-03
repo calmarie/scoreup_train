@@ -1,0 +1,5 @@
+ALTER TABLE users
+    ALTER COLUMN created_at TYPE TIMESTAMP;
+
+ALTER TABLE user_answers
+    ALTER COLUMN created_at TYPE TIMESTAMP;

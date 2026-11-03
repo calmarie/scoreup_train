@@ -1,6 +1,9 @@
 package question
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"time"
+)
 
 type Question struct {
 	ID            int             `json:"id"`
@@ -11,12 +14,22 @@ type Question struct {
 	Text          string          `json:"text"`
 	ImageURL      *string         `json:"image_url"`
 	Options       json.RawMessage `json:"options"`
-	CorrectAnswer string          `json:"correct_answer"`
+	CorrectAnswer json.RawMessage `json:"correct_answer"`
 	Explanation   *string         `json:"explanation"`
 	Data          json.RawMessage `json:"data"`
 	IsActive      bool            `json:"is_active"`
 }
 
 type Answer struct {
-	Text string `json:"text"`
+	ID          int             `json:"id"`
+	User_ID     int             `json:"user_id"`
+	Question_ID int             `json:"question_id"`
+	Answer      json.RawMessage `json:"answer"`
+	Is_correct  bool            `json:"is_correct"`
+	Created_at  time.Time       `json:"created_at"`
+}
+
+type CodeAnswer struct {
+	Language string `json:"language"`
+	Code     string `json:"code"`
 }

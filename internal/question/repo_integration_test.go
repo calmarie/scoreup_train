@@ -53,7 +53,7 @@ func TestRepository_GetQuestion_Success(t *testing.T) {
 		'тест скилл',
 		'тест текст вопроса',
 		'["1","2","3","4"]'::jsonb,
-		'1',
+		'1'::jsonb,
 		'тест обьяснение',
 		'{"addition":"какие-то доп данные"}'::jsonb
 		)`
@@ -114,8 +114,12 @@ func TestRepository_GetQuestion_Success(t *testing.T) {
 		t.Errorf("options = %q, want %q", options, []string{"1", "2", "3", "4"})
 	}
 
-	if question.CorrectAnswer != "1" {
-		t.Errorf("correct_answer = %q, want %q", question.CorrectAnswer, "1")
+	var correctAnswer int
+	if err := json.Unmarshal(question.CorrectAnswer, &correctAnswer); err != nil {
+		t.Fatalf("decode correct_answer: %v", err)
+	}
+	if correctAnswer != 1 {
+		t.Errorf("correct_answer = %d, want 1", correctAnswer)
 	}
 
 	if question.Explanation == nil {
