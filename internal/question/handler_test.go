@@ -19,6 +19,10 @@ func (f *fakeQuestionService) GetQuestion(ctx context.Context) (Question, error)
 	return f.question, f.err
 }
 
+func (f *fakeQuestionService) SaveAnswer(ctx context.Context, answer SubmitAnswerRequest, userID int64) (Answer, error) {
+	return Answer{}, nil
+}
+
 func TestHandler_getQuestion_Success(t *testing.T) {
 
 	logger := slog.New(

@@ -2,6 +2,7 @@ package question
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net"
@@ -13,6 +14,8 @@ import (
 
 type QuestionRepository interface {
 	GetQuestion(ctx context.Context) (Question, error)
+	SaveAnswer(ctx context.Context, ans Answer) (Answer, error)
+	GetCorrectAnswer(ctx context.Context, question_id int) (json.RawMessage, error)
 }
 
 type Repository struct {
@@ -81,6 +84,46 @@ func postgresUnavailable(code string) bool {
 		code == "57P01" || code == "57P02" || code == "57P03"
 }
 
-// func (r *Repository) SaveAnswer() (error){
+func (r *Repository) SaveAnswer(ctx context.Context, ans Answer) (Answer, error) {
 
-// }
+	sql := `INSERT INTO user_answers (user_id, question_id, answer, is_correct) 
+	VALUES($1, $2, $3, $4) 
+	RETURNING id, user_id, question_id, answer, is_correct, created_at;`
+
+	row := r.db.QueryRow(ctx, sql, ans.User_ID, ans.Question_ID, ans.Answer, ans.Is_correct)
+
+	var res Answer
+	err := row.Scan(
+		&res.ID,
+		&res.User_ID,
+		&res.Question_ID,
+		&res.Answer,
+		&res.Is_correct,
+		&res.Created_at,
+	)
+
+	if err != nil {
+		return Answer{}, fmt.Errorf("SaveAnswer db error: %w", err)
+	}
+
+	return res, nil
+}
+
+func (r *Repository) GetCorrectAnswer(ctx context.Context, question_id int) (json.RawMessage, error) {
+
+	sql := `SELECT correct_answer FROM questions
+	WHERE id = $1; `
+
+	row := r.db.QueryRow(ctx, sql, question_id)
+
+	var res json.RawMessage
+	err := row.Scan(
+		&res,
+	)
+
+	if err != nil {
+		return nil, fmt.Errorf("SaveAnswer db error: %w", err)
+	}
+
+	return res, nil
+}

@@ -1,6 +1,7 @@
 package question
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -9,36 +10,13 @@ import (
 
 	"github.com/calmarie/scoreup_train/internal/config"
 	"github.com/calmarie/scoreup_train/internal/postgres"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
 )
 
 func TestRepository_GetQuestion_Success(t *testing.T) {
 	ctx := context.Background()
-
-	err := godotenv.Load("../../.env")
-	if err != nil {
-		t.Fatalf("load env file: %v", err)
-	}
-
-	//test db connection
-	databaseURL, err := config.DbURL("POSTGRES_DB_TEST")
-	if err != nil {
-		t.Fatalf("read postgres configuration: %v", err)
-	}
-
-	db, err := postgres.Connect(ctx, databaseURL)
-	if err != nil {
-		t.Fatalf("connect to postgres: %v", err)
-	}
-	defer db.Close()
-
-	//clean table questions
-	const cleanTableQuery = `TRUNCATE questions RESTART IDENTITY CASCADE;`
-
-	_, err = db.Exec(ctx, cleanTableQuery)
-	if err != nil {
-		t.Fatalf("clean questions table: %v", err)
-	}
+	repo, db := newTestRepository(t, ctx)
 
 	//insert test data
 
@@ -58,14 +36,10 @@ func TestRepository_GetQuestion_Success(t *testing.T) {
 		'{"addition":"какие-то доп данные"}'::jsonb
 		)`
 
-	_, err = db.Exec(ctx, testData)
+	_, err := db.Exec(ctx, testData)
 	if err != nil {
 		t.Fatalf("insert test data: %v", err)
 	}
-
-	//test repo
-
-	repo := NewRepository(db)
 
 	//call getQuestion
 
@@ -145,13 +119,24 @@ func TestRepository_GetQuestion_Success(t *testing.T) {
 
 func TestRepository_GetQuestion_NotFound(t *testing.T) {
 	ctx := context.Background()
+	repo, _ := newTestRepository(t, ctx)
 
-	err := godotenv.Load("../../.env")
-	if err != nil {
+	//call getQuestion
+
+	_, err := repo.GetQuestion(ctx)
+	if !errors.Is(err, ErrQuestionNotFound) {
+		t.Fatalf("expected ErrQuestionNotFound, got %v", err)
+	}
+
+}
+
+func newTestRepository(t *testing.T, ctx context.Context) (*Repository, *pgxpool.Pool) {
+	t.Helper()
+
+	if err := godotenv.Load("../../.env"); err != nil {
 		t.Fatalf("load env file: %v", err)
 	}
 
-	//test db connection
 	databaseURL, err := config.DbURL("POSTGRES_DB_TEST")
 	if err != nil {
 		t.Fatalf("read postgres configuration: %v", err)
@@ -161,25 +146,119 @@ func TestRepository_GetQuestion_NotFound(t *testing.T) {
 	if err != nil {
 		t.Fatalf("connect to postgres: %v", err)
 	}
-	defer db.Close()
+	t.Cleanup(db.Close)
 
-	//clean table questions
 	const cleanTableQuery = `TRUNCATE questions RESTART IDENTITY CASCADE;`
-
-	_, err = db.Exec(ctx, cleanTableQuery)
-	if err != nil {
+	if _, err := db.Exec(ctx, cleanTableQuery); err != nil {
 		t.Fatalf("clean questions table: %v", err)
 	}
 
-	//test repo
+	return NewRepository(db), db
+}
 
-	repo := NewRepository(db)
+func TestGetCorrectAnswer_Success(t *testing.T) {
+	ctx := context.Background()
+	repo, db := newTestRepository(t, ctx)
 
-	//call getQuestion
+	const testData = `INSERT INTO questions (
+		type, difficulty, topic, skill, text, options, correct_answer, explanation, data
+		)
+		VALUES
+		(
+		'radio',
+		1,
+		'тест топик',
+		'тест скилл',
+		'тест текст вопроса',
+		'["1","2","3","4"]'::jsonb,
+		'1'::jsonb,
+		'тест обьяснение',
+		'{"addition":"какие-то доп данные"}'::jsonb
+		)`
 
-	_, err = repo.GetQuestion(ctx)
-	if !errors.Is(err, ErrQuestionNotFound) {
-		t.Fatalf("expected ErrQuestionNotFound, got %v", err)
+	_, err := db.Exec(ctx, testData)
+	if err != nil {
+		t.Fatalf("insert test data: %v", err)
+	}
+
+	res, err := repo.GetCorrectAnswer(ctx, 1)
+
+	if err != nil {
+		t.Fatalf("GetCorrectAnswer: %v", err)
+	}
+
+	var got int
+	if err := json.Unmarshal(res, &got); err != nil {
+		t.Fatalf("decode correct answer: %v", err)
+	}
+
+	if got != 1 {
+		t.Fatalf("got %v, want %v", res, 1)
+	}
+
+}
+
+func TestSaveAnswer_Success(t *testing.T) {
+
+	ctx := context.Background()
+
+	repo, db := newTestRepository(t, ctx)
+
+	var userID int64
+	if err := db.QueryRow(ctx, `
+		INSERT INTO users DEFAULT VALUES
+		RETURNING id;
+	`).Scan(&userID); err != nil {
+		t.Fatalf("create user: %v", err)
+	}
+
+	var questionID int
+	if err := db.QueryRow(ctx, `
+		INSERT INTO questions (
+			type, difficulty, topic, text, options, correct_answer, data
+		)
+		VALUES (
+			'radio', 1, 'test topic', 'test question',
+			'["1","2","3","4"]'::jsonb,
+			'1'::jsonb,
+			'{}'::jsonb
+		)
+		RETURNING id;
+	`).Scan(&questionID); err != nil {
+		t.Fatalf("create question: %v", err)
+	}
+
+	ans := Answer{
+		User_ID:     userID,
+		Question_ID: questionID,
+		Answer:      json.RawMessage(`1`),
+		Is_correct:  true,
+	}
+
+	res, err := repo.SaveAnswer(ctx, ans)
+
+	if err != nil {
+		t.Fatalf("SaveAnswer: %v", err)
+	}
+
+	if res.ID != 1 {
+		t.Fatalf("got %v, want %v", res.ID, `1`)
+	}
+
+	if res.User_ID != userID {
+		t.Fatalf("got %d, want %d", res.User_ID, userID)
+	}
+
+	if res.Question_ID != questionID {
+		t.Fatalf("got %d, want %d", res.Question_ID, questionID)
+	}
+
+	if !bytes.Equal(res.Answer, json.RawMessage(`1`)) {
+		t.Fatalf("got %s, want %s", res.Answer, `1`)
+	}
+
+	if !res.Is_correct {
+		t.Fatalf("got %t, want %t", res.Is_correct, true)
 	}
 
 }

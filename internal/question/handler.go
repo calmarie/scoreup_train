@@ -31,6 +31,7 @@ func NewHandler(service QuestistionService, logger *slog.Logger) *Handler {
 
 func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/v1/question", h.getQuestion)
+	mux.HandleFunc("POST /api/v1/question/answer", h.saveAnswer)
 }
 
 func (h *Handler) getQuestion(w http.ResponseWriter, r *http.Request) {
@@ -42,6 +43,28 @@ func (h *Handler) getQuestion(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.writeJSON(w, http.StatusOK, order)
+}
+
+func (h *Handler) saveAnswer(w http.ResponseWriter, r *http.Request) {
+
+	var request SubmitAnswerRequest
+
+	err := decodeJSON(w, r, &request)
+
+	if err != nil {
+		h.handleServiceError(w, r, err)
+		return
+	}
+	////////////////////////////
+	//user ID hadcoded
+	///////////////////////////
+	ans, err := h.service.SaveAnswer(r.Context(), request, 1)
+	if err != nil {
+		h.handleServiceError(w, r, err)
+		return
+	}
+
+	h.writeJSON(w, http.StatusOK, ans)
 }
 
 func decodeJSON(w http.ResponseWriter, r *http.Request, target any) error {

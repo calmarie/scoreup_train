@@ -20,9 +20,14 @@ type Question struct {
 	IsActive      bool            `json:"is_active"`
 }
 
+type SubmitAnswerRequest struct {
+	QuestionID int             `json:"question_id"`
+	Answer     json.RawMessage `json:"answer"`
+}
+
 type Answer struct {
 	ID          int             `json:"id"`
-	User_ID     int             `json:"user_id"`
+	User_ID     int64           `json:"user_id"`
 	Question_ID int             `json:"question_id"`
 	Answer      json.RawMessage `json:"answer"`
 	Is_correct  bool            `json:"is_correct"`
