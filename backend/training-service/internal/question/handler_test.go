@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 )
 
@@ -23,6 +24,56 @@ func (f *fakeQuestionService) SaveAnswer(ctx context.Context, answer SubmitAnswe
 	return Answer{}, nil
 }
 
+type answerRepository struct {
+	saved Answer
+}
+
+func (r *answerRepository) GetQuestion(context.Context) (Question, error) {
+	return Question{}, nil
+}
+
+func (r *answerRepository) GetCorrectAnswer(context.Context, int) (json.RawMessage, error) {
+	return json.RawMessage(`"yes"`), nil
+}
+
+func (r *answerRepository) SaveAnswer(_ context.Context, answer Answer) (Answer, error) {
+	r.saved = answer
+	return answer, nil
+}
+
+func TestHandler_saveAnswerUsesResolvedUserID(t *testing.T) {
+	repo := &answerRepository{}
+	var resolvedTelegramID int64
+	resolveUserID := func(_ context.Context, telegramID int64) (int64, error) {
+		resolvedTelegramID = telegramID
+		return 42, nil
+	}
+	h := NewHandler(NewService(repo), resolveUserID, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	mux := http.NewServeMux()
+	h.RegisterRoutes(mux)
+
+	request := httptest.NewRequest(http.MethodPost, "/api/v1/question/answer", strings.NewReader(`{"question_id":5,"answer":"yes"}`))
+	response := httptest.NewRecorder()
+	mux.ServeHTTP(response, request)
+
+	if response.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d: %s", response.Code, http.StatusOK, response.Body.String())
+	}
+	if resolvedTelegramID != 1 {
+		t.Errorf("resolved Telegram ID = %d, want 1", resolvedTelegramID)
+	}
+	if repo.saved.User_ID != 42 {
+		t.Errorf("saved user ID = %d, want 42", repo.saved.User_ID)
+	}
+	var answer Answer
+	if err := json.NewDecoder(response.Body).Decode(&answer); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if answer.User_ID != 42 {
+		t.Errorf("response user ID = %d, want 42", answer.User_ID)
+	}
+}
+
 func TestHandler_getQuestion_Success(t *testing.T) {
 
 	logger := slog.New(
@@ -36,7 +87,7 @@ func TestHandler_getQuestion_Success(t *testing.T) {
 		},
 	}
 
-	h := NewHandler(service, logger)
+	h := NewHandler(service, nil, logger)
 
 	r := httptest.NewRequest(http.MethodGet, "/question", nil)
 	w := httptest.NewRecorder()
@@ -116,7 +167,7 @@ func TestHandler_getQuestion_Errors(t *testing.T) {
 				err: test.err,
 			}
 
-			h := NewHandler(service, logger)
+			h := NewHandler(service, nil, logger)
 
 			r := httptest.NewRequest(http.MethodGet, "/question", nil)
 			w := httptest.NewRecorder()

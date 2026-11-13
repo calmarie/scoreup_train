@@ -11,17 +11,17 @@ RUN go mod download
 
 COPY . .
 
-RUN CGO_ENABLED=0 GOOS=linux go build -o scoreup_train .
+RUN CGO_ENABLED=0 GOOS=linux go build -o api-gateway ./backend/api-gateway
 
 
 ##execution from binary
 
 FROM alpine:3.24
 
-COPY --from=builder /app/scoreup_train .
+COPY --from=builder /app/api-gateway .
 
 EXPOSE 8080
 
-ENTRYPOINT ["./scoreup_train"]
+ENTRYPOINT ["./api-gateway"]
 
 

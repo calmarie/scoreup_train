@@ -133,7 +133,7 @@ func TestRepository_GetQuestion_NotFound(t *testing.T) {
 func newTestRepository(t *testing.T, ctx context.Context) (*Repository, *pgxpool.Pool) {
 	t.Helper()
 
-	if err := godotenv.Load("../../.env"); err != nil {
+	if err := godotenv.Load("../../../../.env"); err != nil {
 		t.Fatalf("load env file: %v", err)
 	}
 
@@ -204,13 +204,7 @@ func TestSaveAnswer_Success(t *testing.T) {
 
 	repo, db := newTestRepository(t, ctx)
 
-	var userID int64
-	if err := db.QueryRow(ctx, `
-		INSERT INTO users DEFAULT VALUES
-		RETURNING id;
-	`).Scan(&userID); err != nil {
-		t.Fatalf("create user: %v", err)
-	}
+	const userID int64 = 42
 
 	var questionID int
 	if err := db.QueryRow(ctx, `

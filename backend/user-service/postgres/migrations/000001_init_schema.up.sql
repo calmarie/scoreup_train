@@ -1,0 +1,6 @@
+CREATE TABLE users (
+    id BIGSERIAL PRIMARY KEY,
+    telegram_id BIGINT UNIQUE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    xp_total INTEGER NOT NULL DEFAULT 0
+);

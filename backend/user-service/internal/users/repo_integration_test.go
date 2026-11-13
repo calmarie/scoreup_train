@@ -15,7 +15,7 @@ import (
 func TestRepository_CreateUser_Success(t *testing.T) {
 	ctx := context.Background()
 
-	if err := godotenv.Load("../../.env"); err != nil {
+	if err := godotenv.Load("../../../../.env"); err != nil {
 		t.Fatalf("load env file: %v", err)
 	}
 
@@ -31,7 +31,7 @@ func TestRepository_CreateUser_Success(t *testing.T) {
 	}
 	defer db.Close()
 
-	migration, err := os.ReadFile("../../migrations/000002_create_users.up.sql")
+	migration, err := os.ReadFile("../../postgres/migrations/000001_init_schema.up.sql")
 	if err != nil {
 		t.Fatalf("read users migration: %v", err)
 	}
@@ -80,7 +80,7 @@ func TestRepository_CreateUser_Success(t *testing.T) {
 func TestRepository_GetUserByTelegramID(t *testing.T) {
 	ctx := context.Background()
 
-	if err := godotenv.Load("../../.env"); err != nil {
+	if err := godotenv.Load("../../../../.env"); err != nil {
 		t.Fatalf("load env file: %v", err)
 	}
 
@@ -95,7 +95,7 @@ func TestRepository_GetUserByTelegramID(t *testing.T) {
 	}
 	defer db.Close()
 
-	migration, err := os.ReadFile("../../migrations/000002_create_users.up.sql")
+	migration, err := os.ReadFile("../../postgres/migrations/000001_init_schema.up.sql")
 	if err != nil {
 		t.Fatalf("read users migration: %v", err)
 	}

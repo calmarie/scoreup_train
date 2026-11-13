@@ -1,6 +1,0 @@
-ALTER TABLE users
-    ALTER COLUMN created_at TYPE TIMESTAMPTZ;
-
-
-ALTER TABLE user_answers
-    ALTER COLUMN created_at TYPE TIMESTAMPTZ;

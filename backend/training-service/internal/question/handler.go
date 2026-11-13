@@ -18,14 +18,16 @@ type serviceErrorResponse struct {
 }
 
 type Handler struct {
-	service QuestistionService
-	logger  *slog.Logger
+	service       QuestistionService
+	resolveUserID func(context.Context, int64) (int64, error)
+	logger        *slog.Logger
 }
 
-func NewHandler(service QuestistionService, logger *slog.Logger) *Handler {
+func NewHandler(service QuestistionService, resolveUserID func(context.Context, int64) (int64, error), logger *slog.Logger) *Handler {
 	return &Handler{
-		service: service,
-		logger:  logger,
+		service:       service,
+		resolveUserID: resolveUserID,
+		logger:        logger,
 	}
 }
 
@@ -55,10 +57,15 @@ func (h *Handler) saveAnswer(w http.ResponseWriter, r *http.Request) {
 		h.handleServiceError(w, r, err)
 		return
 	}
-	////////////////////////////
-	//tg ID hadcoded
-	///////////////////////////
-	ans, err := h.service.SaveAnswer(r.Context(), request, 1)
+	// Telegram ID is temporary until request authentication is implemented.
+	const telegramID int64 = 1
+	userID, err := h.resolveUserID(r.Context(), telegramID)
+	if err != nil {
+		h.handleServiceError(w, r, err)
+		return
+	}
+
+	ans, err := h.service.SaveAnswer(r.Context(), request, userID)
 	if err != nil {
 		h.handleServiceError(w, r, err)
 		return
