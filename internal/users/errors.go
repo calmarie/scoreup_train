@@ -6,12 +6,16 @@ import (
 	"fmt"
 	"net"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 )
 
 var (
 	ErrCreateUser          = errors.New("create user error")
+	ErrGetUser             = errors.New("get user error")
 	ErrUserAlreadyExists   = errors.New("user already exists")
+	ErrUserNotFound        = errors.New("user not found")
+	ErrInvalidTelegramID   = errors.New("invalid telegram id")
 	ErrDatabaseUnavailable = errors.New("database temporarily unavailable")
 )
 
@@ -36,6 +40,28 @@ func createUserError(err error) error {
 	}
 
 	return fmt.Errorf("create user: %w: %w", ErrCreateUser, err)
+}
+
+func getUserError(err error) error {
+	if errors.Is(err, pgx.ErrNoRows) {
+		return fmt.Errorf("get user by telegram id: %w", ErrUserNotFound)
+	}
+
+	if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+		return fmt.Errorf("get user by telegram id: %w", err)
+	}
+
+	var postgresErr *pgconn.PgError
+	if errors.As(err, &postgresErr) && postgresUnavailable(postgresErr.Code) {
+		return fmt.Errorf("get user by telegram id: %w: %w", ErrDatabaseUnavailable, err)
+	}
+
+	var networkErr net.Error
+	if errors.As(err, &networkErr) {
+		return fmt.Errorf("get user by telegram id: %w: %w", ErrDatabaseUnavailable, err)
+	}
+
+	return fmt.Errorf("get user by telegram id: %w: %w", ErrGetUser, err)
 }
 
 func postgresUnavailable(code string) bool {

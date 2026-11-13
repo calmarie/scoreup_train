@@ -3,6 +3,8 @@ package question
 import (
 	"bytes"
 	"context"
+
+	"github.com/calmarie/scoreup_train/internal/users"
 )
 
 type QuestistionService interface {
@@ -10,19 +12,30 @@ type QuestistionService interface {
 	SaveAnswer(ctx context.Context, userAns SubmitAnswerRequest, userId int64) (Answer, error)
 }
 
-type Service struct {
-	repository QuestionRepository
+type UserLookup interface {
+	GetUserByTelegramID(
+		ctx context.Context,
+		telegramID int64,
+	) (users.User, error)
 }
 
-func NewService(repository QuestionRepository) *Service {
-	return &Service{repository: repository}
+type Service struct {
+	repository QuestionRepository
+	user       UserLookup
+}
+
+func NewService(repository QuestionRepository, user UserLookup) *Service {
+	return &Service{
+		repository: repository,
+		user:       user,
+	}
 }
 
 func (s *Service) GetQuestion(ctx context.Context) (Question, error) {
 	return s.repository.GetQuestion(ctx)
 }
 
-func (s *Service) SaveAnswer(ctx context.Context, userAns SubmitAnswerRequest, userId int64) (Answer, error) {
+func (s *Service) SaveAnswer(ctx context.Context, userAns SubmitAnswerRequest, tgID int64) (Answer, error) {
 
 	correctAns, err := s.repository.GetCorrectAnswer(ctx, userAns.QuestionID)
 
@@ -32,8 +45,14 @@ func (s *Service) SaveAnswer(ctx context.Context, userAns SubmitAnswerRequest, u
 
 	isCorrect := bytes.Equal(correctAns, userAns.Answer)
 
+	user, err := s.user.GetUserByTelegramID(ctx, tgID)
+
+	if err != nil {
+		return Answer{}, err
+	}
+
 	res := Answer{
-		User_ID:     userId,
+		User_ID:     user.Id,
 		Question_ID: userAns.QuestionID,
 		Answer:      userAns.Answer,
 		Is_correct:  isCorrect,

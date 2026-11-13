@@ -76,3 +76,66 @@ func TestRepository_CreateUser_Success(t *testing.T) {
 		t.Errorf("users count = %d, want %d", count, 2)
 	}
 }
+
+func TestRepository_GetUserByTelegramID(t *testing.T) {
+	ctx := context.Background()
+
+	if err := godotenv.Load("../../.env"); err != nil {
+		t.Fatalf("load env file: %v", err)
+	}
+
+	databaseURL, err := config.DbURL("POSTGRES_DB_TEST")
+	if err != nil {
+		t.Fatalf("read postgres configuration: %v", err)
+	}
+
+	db, err := postgres.Connect(ctx, databaseURL+"&pool_max_conns=1")
+	if err != nil {
+		t.Fatalf("connect to postgres: %v", err)
+	}
+	defer db.Close()
+
+	migration, err := os.ReadFile("../../migrations/000002_create_users.up.sql")
+	if err != nil {
+		t.Fatalf("read users migration: %v", err)
+	}
+
+	query := strings.Replace(string(migration), "CREATE TABLE users", "CREATE TEMP TABLE users", 1)
+	if _, err := db.Exec(ctx, query); err != nil {
+		t.Fatalf("create temporary users table: %v", err)
+	}
+
+	const telegramID int64 = 123456789
+	if _, err := db.Exec(ctx, `INSERT INTO users DEFAULT VALUES`); err != nil {
+		t.Fatalf("insert user without telegram ID: %v", err)
+	}
+
+	var wantID int64
+	if err := db.QueryRow(ctx, `
+		INSERT INTO users (telegram_id)
+		VALUES ($1)
+		RETURNING id;`, telegramID).Scan(&wantID); err != nil {
+		t.Fatalf("insert user: %v", err)
+	}
+
+	repo := NewRepository(db)
+	user, err := repo.GetUserByTelegramID(ctx, telegramID)
+	if err != nil {
+		t.Fatalf("get user: %v", err)
+	}
+
+	if user.Id != wantID {
+		t.Errorf("id = %d, want %d", user.Id, wantID)
+	}
+	if user.Telegram_id == nil || *user.Telegram_id != telegramID {
+		t.Errorf("telegram_id = %v, want %d", user.Telegram_id, telegramID)
+	}
+	if user.Created_at.IsZero() {
+		t.Error("created_at must contain the creation time")
+	}
+
+	_, err = repo.GetUserByTelegramID(ctx, telegramID+1)
+	if !errors.Is(err, ErrUserNotFound) {
+		t.Errorf("error = %v, want %v", err, ErrUserNotFound)
+	}
+}

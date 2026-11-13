@@ -56,7 +56,7 @@ func (h *Handler) saveAnswer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	////////////////////////////
-	//user ID hadcoded
+	//tg ID hadcoded
 	///////////////////////////
 	ans, err := h.service.SaveAnswer(r.Context(), request, 1)
 	if err != nil {

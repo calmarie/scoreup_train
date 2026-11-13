@@ -1,0 +1,5 @@
+ALTER TABLE questions
+DROP COLUMN IF EXISTS xp;
+
+ALTER TABLE users
+DROP COLUMN IF EXISTS xp_total;

@@ -16,10 +16,16 @@ func new(
 ) *http.ServeMux {
 	mux := http.NewServeMux()
 	mux.Handle("GET /health", healthcheck.NewHealthHandler(db, logger))
-	handler := question.NewHandler(question.NewService(question.NewRepository(db)), logger)
-	handler.RegisterRoutes(mux)
-	usersHandler := users.NewHandler(users.NewService(users.NewRepository(db)), logger)
+
+	usersService := users.NewService(users.NewRepository(db))
+	usersHandler := users.NewHandler(usersService, logger)
 	usersHandler.RegisterRoutes(mux)
+
+	questionsHandler := question.NewHandler(
+		question.NewService(question.NewRepository(db), usersService),
+		logger,
+	)
+	questionsHandler.RegisterRoutes(mux)
 
 	return mux
 }
