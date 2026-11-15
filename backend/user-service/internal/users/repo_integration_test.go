@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/calmarie/scoreup_train/backend/user-service/postgres"
-	"github.com/calmarie/scoreup_train/internal/config"
 	"github.com/joho/godotenv"
 )
 
@@ -140,8 +139,10 @@ func testDatabaseURL(t *testing.T) string {
 	if testPort == "" {
 		testPort = "5434"
 	}
-	t.Setenv("POSTGRES_PORT", testPort)
-	databaseURL, err := config.DbURL("POSTGRES_DB_TEST")
+	t.Setenv("USER_POSTGRES_DB", os.Getenv("POSTGRES_DB_TEST"))
+	t.Setenv("USER_POSTGRES_HOST", os.Getenv("POSTGRES_HOST"))
+	t.Setenv("USER_POSTGRES_PORT", testPort)
+	databaseURL, err := postgres.DatabaseURL()
 	if err != nil {
 		t.Fatalf("read postgres configuration: %v", err)
 	}

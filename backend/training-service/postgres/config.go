@@ -1,10 +1,10 @@
 package postgres
 
 import (
+	"fmt"
 	"net"
 	"net/url"
-
-	"github.com/calmarie/scoreup_train/internal/config"
+	"os"
 )
 
 func DatabaseURL() (string, error) {
@@ -17,7 +17,7 @@ func DatabaseURL() (string, error) {
 	}
 	values := make(map[string]string, len(names))
 	for _, name := range names {
-		value, err := config.RequiredEnv(name)
+		value, err := requiredEnv(name)
 		if err != nil {
 			return "", err
 		}
@@ -41,4 +41,12 @@ func DatabaseURL() (string, error) {
 	databaseURL.RawQuery = query.Encode()
 
 	return databaseURL.String(), nil
+}
+
+func requiredEnv(name string) (string, error) {
+	value, ok := os.LookupEnv(name)
+	if !ok || value == "" {
+		return "", fmt.Errorf("environment variable %s is required", name)
+	}
+	return value, nil
 }

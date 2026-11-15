@@ -5,17 +5,17 @@ import (
 	"log/slog"
 	"net/http"
 	"net/url"
+	"os"
 	"time"
 
 	trainingpb "github.com/calmarie/scoreup_train/backend/gen/training"
 	userpb "github.com/calmarie/scoreup_train/backend/gen/user"
-	"github.com/calmarie/scoreup_train/internal/config"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 )
 
 func run(logger *slog.Logger) error {
-	httpPort, err := config.RequiredEnv("HTTP_PORT")
+	httpPort, err := requiredEnv("HTTP_PORT")
 	if err != nil {
 		return fmt.Errorf("read HTTP configuration: %w", err)
 	}
@@ -52,12 +52,12 @@ func connGRPCServers() (userpb.UserClient, trainingpb.TrainingClient, func(), er
 		return nil, nil, nil, fmt.Errorf("load gRPC CA: %w", err)
 	}
 
-	userTarget, err := config.RequiredEnv("USER_SERVICE_URL")
+	userTarget, err := requiredEnv("USER_SERVICE_URL")
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("read USER_SERVICE_URL: %w", err)
 	}
 
-	trainingTarget, err := config.RequiredEnv("TRAINING_SERVICE_URL")
+	trainingTarget, err := requiredEnv("TRAINING_SERVICE_URL")
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("read TRAINING_SERVICE_URL: %w", err)
 	}
@@ -84,7 +84,7 @@ func connGRPCServers() (userpb.UserClient, trainingpb.TrainingClient, func(), er
 }
 
 func serviceURL(name string) (*url.URL, error) {
-	raw, err := config.RequiredEnv(name)
+	raw, err := requiredEnv(name)
 	if err != nil {
 		return nil, fmt.Errorf("read upstream configuration: %w", err)
 	}
@@ -93,4 +93,12 @@ func serviceURL(name string) (*url.URL, error) {
 		return nil, fmt.Errorf("invalid %s: expected an HTTP URL", name)
 	}
 	return target, nil
+}
+
+func requiredEnv(name string) (string, error) {
+	value, ok := os.LookupEnv(name)
+	if !ok || value == "" {
+		return "", fmt.Errorf("environment variable %s is required", name)
+	}
+	return value, nil
 }

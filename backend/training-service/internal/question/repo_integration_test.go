@@ -10,7 +10,6 @@ import (
 	"testing"
 
 	"github.com/calmarie/scoreup_train/backend/training-service/postgres"
-	"github.com/calmarie/scoreup_train/internal/config"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
 )
@@ -144,8 +143,9 @@ func newTestRepository(t *testing.T, ctx context.Context) (*Repository, *pgxpool
 		testPort = "5434"
 	}
 	t.Setenv("POSTGRES_PORT", testPort)
+	t.Setenv("POSTGRES_DB", os.Getenv("POSTGRES_DB_TEST"))
 
-	databaseURL, err := config.DbURL("POSTGRES_DB_TEST")
+	databaseURL, err := postgres.DatabaseURL()
 	if err != nil {
 		t.Fatalf("read postgres configuration: %v", err)
 	}
