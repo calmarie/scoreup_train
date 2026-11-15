@@ -7,7 +7,7 @@ import (
 
 type QuestistionService interface {
 	GetQuestion(ctx context.Context) (Question, error)
-	SaveAnswer(ctx context.Context, userAns SubmitAnswerRequest, userID int64) (Answer, error)
+	SaveAnswer(ctx context.Context, userAns SubmitAnswerRequest) (Answer, error)
 }
 
 type Service struct {
@@ -22,7 +22,7 @@ func (s *Service) GetQuestion(ctx context.Context) (Question, error) {
 	return s.repository.GetQuestion(ctx)
 }
 
-func (s *Service) SaveAnswer(ctx context.Context, userAns SubmitAnswerRequest, userID int64) (Answer, error) {
+func (s *Service) SaveAnswer(ctx context.Context, userAns SubmitAnswerRequest) (Answer, error) {
 
 	correctAns, err := s.repository.GetCorrectAnswer(ctx, userAns.QuestionID)
 
@@ -33,10 +33,10 @@ func (s *Service) SaveAnswer(ctx context.Context, userAns SubmitAnswerRequest, u
 	isCorrect := bytes.Equal(correctAns, userAns.Answer)
 
 	res := Answer{
-		User_ID:     userID,
-		Question_ID: userAns.QuestionID,
-		Answer:      userAns.Answer,
-		Is_correct:  isCorrect,
+		UserID:     userAns.UserID,
+		QuestionID: userAns.QuestionID,
+		Answer:     userAns.Answer,
+		IsCorrect:  isCorrect,
 	}
 
 	return s.repository.SaveAnswer(ctx, res)

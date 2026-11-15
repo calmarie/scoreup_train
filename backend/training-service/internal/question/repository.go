@@ -37,7 +37,6 @@ func (r *Repository) GetQuestion(ctx context.Context) (Question, error) {
 			text,
 			image_url,
 			options,
-			correct_answer,
 			explanation,
 			data,
 			is_active
@@ -56,7 +55,6 @@ func (r *Repository) GetQuestion(ctx context.Context) (Question, error) {
 		&question.Text,
 		&question.ImageURL,
 		&question.Options,
-		&question.CorrectAnswer,
 		&question.Explanation,
 		&question.Data,
 		&question.IsActive,
@@ -90,16 +88,16 @@ func (r *Repository) SaveAnswer(ctx context.Context, ans Answer) (Answer, error)
 	VALUES($1, $2, $3, $4) 
 	RETURNING id, user_id, question_id, answer, is_correct, created_at;`
 
-	row := r.db.QueryRow(ctx, sql, ans.User_ID, ans.Question_ID, ans.Answer, ans.Is_correct)
+	row := r.db.QueryRow(ctx, sql, ans.UserID, ans.QuestionID, ans.Answer, ans.IsCorrect)
 
 	var res Answer
 	err := row.Scan(
 		&res.ID,
-		&res.User_ID,
-		&res.Question_ID,
+		&res.UserID,
+		&res.QuestionID,
 		&res.Answer,
-		&res.Is_correct,
-		&res.Created_at,
+		&res.IsCorrect,
+		&res.CreatedAt,
 	)
 
 	if err != nil {
@@ -122,6 +120,9 @@ func (r *Repository) GetCorrectAnswer(ctx context.Context, question_id int) (jso
 	)
 
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrQuestionNotFound
+		}
 		return nil, fmt.Errorf("SaveAnswer db error: %w", err)
 	}
 

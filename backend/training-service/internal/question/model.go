@@ -6,35 +6,35 @@ import (
 )
 
 type Question struct {
-	ID            int             `json:"id"`
-	Type          string          `json:"type"`
-	Difficulty    int             `json:"difficulty"`
-	Topic         string          `json:"topic"`
-	Skill         *string         `json:"skill"`
-	Text          string          `json:"text"`
-	ImageURL      *string         `json:"image_url"`
-	Options       json.RawMessage `json:"options"`
-	CorrectAnswer json.RawMessage `json:"correct_answer"`
-	Explanation   *string         `json:"explanation"`
-	Data          json.RawMessage `json:"data"`
-	IsActive      bool            `json:"is_active"`
+	ID          int
+	Type        string
+	Difficulty  int
+	Topic       string
+	Skill       *string
+	Text        string
+	ImageURL    *string
+	Options     json.RawMessage
+	Explanation *string
+	Data        json.RawMessage
+	IsActive    bool
 }
 
 type SubmitAnswerRequest struct {
-	QuestionID int             `json:"question_id"`
-	Answer     json.RawMessage `json:"answer"`
+	UserID     int64
+	QuestionID int
+	Answer     json.RawMessage
 }
 
 type Answer struct {
-	ID          int             `json:"id"`
-	User_ID     int64           `json:"user_id"`
-	Question_ID int             `json:"question_id"`
-	Answer      json.RawMessage `json:"answer"`
-	Is_correct  bool            `json:"is_correct"`
-	Created_at  time.Time       `json:"created_at"`
+	ID         int64
+	UserID     int64
+	QuestionID int
+	Answer     json.RawMessage
+	IsCorrect  bool
+	CreatedAt  time.Time
 }
 
 type CodeAnswer struct {
-	Language string `json:"language"`
-	Code     string `json:"code"`
+	Language string
+	Code     string
 }

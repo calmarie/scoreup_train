@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+package user;
+
+option go_package = "github.com/calmarie/scoreup_train/backend/gen/user;userpb";
+
+import "google/protobuf/timestamp.proto";
+
+service User {
+    rpc CreateUser(CreateUserRequest) returns (UserReply);
+    rpc GetUserByTelegramID(GetUserByTelegramIDRequest) returns (UserReply);
+}
+
+message CreateUserRequest {
+    int64 telegram_id = 1;
+}
+
+message GetUserByTelegramIDRequest {
+    int64 telegram_id = 1;
+}
+
+message UserReply {
+    int64 id = 1;
+    int64 telegram_id = 2;
+    google.protobuf.Timestamp created_at = 3;
+}

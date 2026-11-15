@@ -1,10 +1,6 @@
 package question
 
-import (
-	"context"
-	"errors"
-	"net/http"
-)
+import "errors"
 
 var (
 	ErrQuestionNotFound    = errors.New("Question not found")
@@ -14,15 +10,3 @@ var (
 	ErrDatabaseUnavailable = errors.New("database temporarily unavailable")
 	ErrInternalServer      = errors.New("internal server error")
 )
-
-// map for handleServiceError
-var serviceErrorResponses = map[error]serviceErrorResponse{
-	ErrQuestionNotFound:      {http.StatusNotFound, ErrQuestionNotFound.Error()},
-	ErrInvalidRequestBody:    {http.StatusBadRequest, ErrInvalidRequestBody.Error()},
-	ErrMultipleJSONValues:    {http.StatusBadRequest, ErrMultipleJSONValues.Error()},
-	ErrRequestBodyTooLarge:   {http.StatusRequestEntityTooLarge, ErrRequestBodyTooLarge.Error()},
-	ErrDatabaseUnavailable:   {http.StatusServiceUnavailable, ErrDatabaseUnavailable.Error()},
-	ErrInternalServer:        {http.StatusInternalServerError, ErrInternalServer.Error()},
-	context.Canceled:         {http.StatusRequestTimeout, "request canceled"},
-	context.DeadlineExceeded: {http.StatusGatewayTimeout, "request timed out"},
-}

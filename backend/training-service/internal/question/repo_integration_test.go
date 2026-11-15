@@ -5,11 +5,12 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"os"
 	"reflect"
 	"testing"
 
+	"github.com/calmarie/scoreup_train/backend/training-service/postgres"
 	"github.com/calmarie/scoreup_train/internal/config"
-	"github.com/calmarie/scoreup_train/internal/postgres"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
 )
@@ -88,14 +89,6 @@ func TestRepository_GetQuestion_Success(t *testing.T) {
 		t.Errorf("options = %q, want %q", options, []string{"1", "2", "3", "4"})
 	}
 
-	var correctAnswer int
-	if err := json.Unmarshal(question.CorrectAnswer, &correctAnswer); err != nil {
-		t.Fatalf("decode correct_answer: %v", err)
-	}
-	if correctAnswer != 1 {
-		t.Errorf("correct_answer = %d, want 1", correctAnswer)
-	}
-
 	if question.Explanation == nil {
 		t.Errorf("explanation = nil, want %q", "тест обьяснение")
 	} else if *question.Explanation != "тест обьяснение" {
@@ -136,6 +129,21 @@ func newTestRepository(t *testing.T, ctx context.Context) (*Repository, *pgxpool
 	if err := godotenv.Load("../../../../.env"); err != nil {
 		t.Fatalf("load env file: %v", err)
 	}
+	testUser := os.Getenv("TRAINING_TEST_POSTGRES_USER")
+	if testUser == "" {
+		testUser = "postgres"
+	}
+	t.Setenv("POSTGRES_USER", testUser)
+	testPassword := os.Getenv("TRAINING_TEST_POSTGRES_PASSWORD")
+	if testPassword == "" {
+		testPassword = "postgres"
+	}
+	t.Setenv("POSTGRES_PASSWORD", testPassword)
+	testPort := os.Getenv("TRAINING_TEST_POSTGRES_PORT")
+	if testPort == "" {
+		testPort = "5434"
+	}
+	t.Setenv("POSTGRES_PORT", testPort)
 
 	databaseURL, err := config.DbURL("POSTGRES_DB_TEST")
 	if err != nil {
@@ -198,6 +206,16 @@ func TestGetCorrectAnswer_Success(t *testing.T) {
 
 }
 
+func TestGetCorrectAnswer_NotFound(t *testing.T) {
+	ctx := context.Background()
+	repo, _ := newTestRepository(t, ctx)
+
+	_, err := repo.GetCorrectAnswer(ctx, 999999)
+	if !errors.Is(err, ErrQuestionNotFound) {
+		t.Fatalf("error = %v, want ErrQuestionNotFound", err)
+	}
+}
+
 func TestSaveAnswer_Success(t *testing.T) {
 
 	ctx := context.Background()
@@ -223,10 +241,10 @@ func TestSaveAnswer_Success(t *testing.T) {
 	}
 
 	ans := Answer{
-		User_ID:     userID,
-		Question_ID: questionID,
-		Answer:      json.RawMessage(`1`),
-		Is_correct:  true,
+		UserID:     userID,
+		QuestionID: questionID,
+		Answer:     json.RawMessage(`1`),
+		IsCorrect:  true,
 	}
 
 	res, err := repo.SaveAnswer(ctx, ans)
@@ -239,20 +257,20 @@ func TestSaveAnswer_Success(t *testing.T) {
 		t.Fatalf("got %v, want %v", res.ID, `1`)
 	}
 
-	if res.User_ID != userID {
-		t.Fatalf("got %d, want %d", res.User_ID, userID)
+	if res.UserID != userID {
+		t.Fatalf("got %d, want %d", res.UserID, userID)
 	}
 
-	if res.Question_ID != questionID {
-		t.Fatalf("got %d, want %d", res.Question_ID, questionID)
+	if res.QuestionID != questionID {
+		t.Fatalf("got %d, want %d", res.QuestionID, questionID)
 	}
 
 	if !bytes.Equal(res.Answer, json.RawMessage(`1`)) {
 		t.Fatalf("got %s, want %s", res.Answer, `1`)
 	}
 
-	if !res.Is_correct {
-		t.Fatalf("got %t, want %t", res.Is_correct, true)
+	if !res.IsCorrect {
+		t.Fatalf("got %t, want %t", res.IsCorrect, true)
 	}
 
 }

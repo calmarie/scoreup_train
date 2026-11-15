@@ -7,7 +7,7 @@ import (
 )
 
 type UserRepository interface {
-	CreateUser(ctx context.Context) (User, error)
+	CreateUser(ctx context.Context, telegramID int64) (User, error)
 	GetUserByTelegramID(ctx context.Context, telegramID int64) (User, error)
 }
 
@@ -20,16 +20,16 @@ func NewRepository(db *pgxpool.Pool) *Repository {
 }
 
 // hardcoded user creation, in advance it will be supplemented with telegram user ID
-func (r *Repository) CreateUser(ctx context.Context) (User, error) {
+func (r *Repository) CreateUser(ctx context.Context, telegramID int64) (User, error) {
 	const create = `
-		INSERT INTO users DEFAULT VALUES
+		INSERT INTO users (telegram_id) VALUES ($1)
 		RETURNING id, telegram_id, created_at;`
 
 	var user User
-	if err := r.db.QueryRow(ctx, create).Scan(
-		&user.Id,
-		&user.Telegram_id,
-		&user.Created_at,
+	if err := r.db.QueryRow(ctx, create, telegramID).Scan(
+		&user.ID,
+		&user.TelegramID,
+		&user.CreatedAt,
 	); err != nil {
 		return User{}, createUserError(err)
 	}
@@ -45,9 +45,9 @@ func (r *Repository) GetUserByTelegramID(ctx context.Context, telegramID int64) 
 
 	var user User
 	if err := r.db.QueryRow(ctx, getUser, telegramID).Scan(
-		&user.Id,
-		&user.Telegram_id,
-		&user.Created_at,
+		&user.ID,
+		&user.TelegramID,
+		&user.CreatedAt,
 	); err != nil {
 		return User{}, getUserError(err)
 	}

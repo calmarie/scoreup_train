@@ -8,28 +8,30 @@ services:
     ports:
       - "${USER_POSTGRES_PORT:-5433}:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${USER_POSTGRES_DB:-scoreup_users}"]
+      test: ["CMD-SHELL", 'PGPASSWORD="$${POSTGRES_PASSWORD}" psql -h user-postgres -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}" -tAc "SELECT 1" >/dev/null']
       interval: 5s
       timeout: 5s
       retries: 5
+      start_period: 30s
     volumes:
       - user-pg-data:/var/lib/postgresql
 
   training-postgres:
     image: postgres:18
     environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_USER: ${TRAINING_POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${TRAINING_POSTGRES_PASSWORD:-postgres}
       POSTGRES_DB: ${POSTGRES_DB}
     ports:
       - "${POSTGRES_PORT}:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      test: ["CMD-SHELL", 'PGPASSWORD="$${POSTGRES_PASSWORD}" psql -h training-postgres -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}" -tAc "SELECT 1" >/dev/null']
       interval: 5s
       timeout: 5s
       retries: 5
+      start_period: 30s
     volumes:
-      - training-pg-data:/var/lib/postgresql
+      - training-pg-local-data:/var/lib/postgresql
 
   migrate-user:
     image: migrate/migrate
@@ -53,8 +55,8 @@ services:
     volumes:
       - ./backend/training-service/postgres/migrations:/migrations:ro
     environment:
-      PGUSER: ${POSTGRES_USER}
-      PGPASSWORD: ${POSTGRES_PASSWORD}
+      PGUSER: ${TRAINING_POSTGRES_USER:-postgres}
+      PGPASSWORD: ${TRAINING_POSTGRES_PASSWORD:-postgres}
     depends_on:
       training-postgres:
         condition: service_healthy
@@ -65,6 +67,99 @@ services:
       - postgres://training-postgres:5432/${POSTGRES_DB}?sslmode=disable
       - up
 
+  user-service:
+    build:
+      context: .
+      dockerfile: backend/user-service/Dockerfile
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      USER_POSTGRES_DB: ${USER_POSTGRES_DB:-scoreup_users}
+      USER_POSTGRES_HOST: user-postgres
+      USER_POSTGRES_PORT: "5432"
+    volumes:
+      - ./certs/user.crt:/app/certs/user.crt:ro
+      - ./certs/user.key:/app/certs/user.key:ro
+    ports:
+      - "${USER_GRPC_PORT:-50053}:50053"
+    depends_on:
+      migrate-user:
+        condition: service_completed_successfully
+
+  training-service:
+    build:
+      context: .
+      dockerfile: backend/training-service/Dockerfile
+    environment:
+      POSTGRES_USER: ${TRAINING_POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${TRAINING_POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_HOST: training-postgres
+      POSTGRES_PORT: "5432"
+    volumes:
+      - ./certs/training.crt:/app/certs/training.crt:ro
+      - ./certs/training.key:/app/certs/training.key:ro
+    ports:
+      - "${TRAINING_GRPC_PORT:-50052}:50052"
+    depends_on:
+      migrate-training:
+        condition: service_completed_successfully
+
+  api-gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      HTTP_PORT: "8080"
+      USER_SERVICE_URL: user-service:50053
+      TRAINING_SERVICE_URL: training-service:50052
+    volumes:
+      - ./certs/ca.pem:/app/certs/ca.pem:ro
+    ports:
+      - "${HTTP_PORT:-8080}:8080"
+    depends_on:
+      user-service:
+        condition: service_started
+      training-service:
+        condition: service_started
+
+  training-postgres-test:
+    profiles: [test]
+    image: postgres:18
+    environment:
+      POSTGRES_USER: ${TRAINING_TEST_POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${TRAINING_TEST_POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB_TEST}
+    ports:
+      - "${TRAINING_TEST_POSTGRES_PORT:-5434}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", 'PGPASSWORD="$${POSTGRES_PASSWORD}" psql -h training-postgres-test -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}" -tAc "SELECT 1" >/dev/null']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    volumes:
+      - training-test-pg-data:/var/lib/postgresql
+
+  migrate-training-test:
+    profiles: [test]
+    image: migrate/migrate
+    volumes:
+      - ./backend/training-service/postgres/migrations:/migrations:ro
+    environment:
+      PGUSER: ${TRAINING_TEST_POSTGRES_USER:-postgres}
+      PGPASSWORD: ${TRAINING_TEST_POSTGRES_PASSWORD:-postgres}
+    depends_on:
+      training-postgres-test:
+        condition: service_healthy
+    command:
+      - -path
+      - /migrations
+      - -database
+      - postgres://training-postgres-test:5432/${POSTGRES_DB_TEST}?sslmode=disable
+      - up
+
 volumes:
   user-pg-data:
-  training-pg-data:
+  training-pg-local-data:
+  training-test-pg-data:

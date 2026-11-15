@@ -7,22 +7,14 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/calmarie/scoreup_train/backend/user-service/postgres"
 	"github.com/calmarie/scoreup_train/internal/config"
-	"github.com/calmarie/scoreup_train/internal/postgres"
 	"github.com/joho/godotenv"
 )
 
 func TestRepository_CreateUser_Success(t *testing.T) {
 	ctx := context.Background()
-
-	if err := godotenv.Load("../../../../.env"); err != nil {
-		t.Fatalf("load env file: %v", err)
-	}
-
-	databaseURL, err := config.DbURL("POSTGRES_DB_TEST")
-	if err != nil {
-		t.Fatalf("read postgres configuration: %v", err)
-	}
+	databaseURL := testDatabaseURL(t)
 
 	// A single connection keeps the temporary table available to the repository.
 	db, err := postgres.Connect(ctx, databaseURL+"&pool_max_conns=1")
@@ -44,27 +36,28 @@ func TestRepository_CreateUser_Success(t *testing.T) {
 
 	repo := NewRepository(db)
 	for id := int64(1); id <= 2; id++ {
-		user, err := repo.CreateUser(ctx)
+		telegramID := 100000 + id
+		user, err := repo.CreateUser(ctx, telegramID)
 		if err != nil {
 			t.Fatalf("call CreateUser: %v", err)
 		}
 
-		if user.Id != id {
-			t.Errorf("id = %d, want %d", user.Id, id)
+		if user.ID != id {
+			t.Errorf("id = %d, want %d", user.ID, id)
 		}
 
-		if user.Telegram_id != nil {
-			t.Errorf("telegram_id = %d, want nil", *user.Telegram_id)
+		if user.TelegramID != telegramID {
+			t.Errorf("telegram_id = %d, want %d", user.TelegramID, telegramID)
 		}
 
-		if user.Created_at.IsZero() {
+		if user.CreatedAt.IsZero() {
 			t.Error("created_at must contain the creation time")
 		}
 	}
 
 	canceledCtx, cancel := context.WithCancel(ctx)
 	cancel()
-	if _, err := repo.CreateUser(canceledCtx); !errors.Is(err, context.Canceled) {
+	if _, err := repo.CreateUser(canceledCtx, 100003); !errors.Is(err, context.Canceled) {
 		t.Errorf("error = %v, want %v", err, context.Canceled)
 	}
 
@@ -79,15 +72,7 @@ func TestRepository_CreateUser_Success(t *testing.T) {
 
 func TestRepository_GetUserByTelegramID(t *testing.T) {
 	ctx := context.Background()
-
-	if err := godotenv.Load("../../../../.env"); err != nil {
-		t.Fatalf("load env file: %v", err)
-	}
-
-	databaseURL, err := config.DbURL("POSTGRES_DB_TEST")
-	if err != nil {
-		t.Fatalf("read postgres configuration: %v", err)
-	}
+	databaseURL := testDatabaseURL(t)
 
 	db, err := postgres.Connect(ctx, databaseURL+"&pool_max_conns=1")
 	if err != nil {
@@ -106,10 +91,6 @@ func TestRepository_GetUserByTelegramID(t *testing.T) {
 	}
 
 	const telegramID int64 = 123456789
-	if _, err := db.Exec(ctx, `INSERT INTO users DEFAULT VALUES`); err != nil {
-		t.Fatalf("insert user without telegram ID: %v", err)
-	}
-
 	var wantID int64
 	if err := db.QueryRow(ctx, `
 		INSERT INTO users (telegram_id)
@@ -124,13 +105,13 @@ func TestRepository_GetUserByTelegramID(t *testing.T) {
 		t.Fatalf("get user: %v", err)
 	}
 
-	if user.Id != wantID {
-		t.Errorf("id = %d, want %d", user.Id, wantID)
+	if user.ID != wantID {
+		t.Errorf("id = %d, want %d", user.ID, wantID)
 	}
-	if user.Telegram_id == nil || *user.Telegram_id != telegramID {
-		t.Errorf("telegram_id = %v, want %d", user.Telegram_id, telegramID)
+	if user.TelegramID != telegramID {
+		t.Errorf("telegram_id = %v, want %d", user.TelegramID, telegramID)
 	}
-	if user.Created_at.IsZero() {
+	if user.CreatedAt.IsZero() {
 		t.Error("created_at must contain the creation time")
 	}
 
@@ -138,4 +119,31 @@ func TestRepository_GetUserByTelegramID(t *testing.T) {
 	if !errors.Is(err, ErrUserNotFound) {
 		t.Errorf("error = %v, want %v", err, ErrUserNotFound)
 	}
+}
+
+func testDatabaseURL(t *testing.T) string {
+	t.Helper()
+	if err := godotenv.Load("../../../../.env"); err != nil {
+		t.Fatalf("load env file: %v", err)
+	}
+	testUser := os.Getenv("TRAINING_TEST_POSTGRES_USER")
+	if testUser == "" {
+		testUser = "postgres"
+	}
+	t.Setenv("POSTGRES_USER", testUser)
+	testPassword := os.Getenv("TRAINING_TEST_POSTGRES_PASSWORD")
+	if testPassword == "" {
+		testPassword = "postgres"
+	}
+	t.Setenv("POSTGRES_PASSWORD", testPassword)
+	testPort := os.Getenv("TRAINING_TEST_POSTGRES_PORT")
+	if testPort == "" {
+		testPort = "5434"
+	}
+	t.Setenv("POSTGRES_PORT", testPort)
+	databaseURL, err := config.DbURL("POSTGRES_DB_TEST")
+	if err != nil {
+		t.Fatalf("read postgres configuration: %v", err)
+	}
+	return databaseURL
 }

@@ -1,0 +1,50 @@
+//protoc --proto_path=. --go_out=. --go_opt=module=github.com/calmarie/scoreup_train --go-grpc_out=. --go-grpc_opt=module=github.com/calmarie/scoreup_train backend/training-service/training.proto
+
+syntax = "proto3";
+
+package training;
+
+option go_package = "github.com/calmarie/scoreup_train/backend/gen/training;trainingpb";
+
+import "google/protobuf/timestamp.proto";
+
+service Training {
+    rpc GetQuestion(GetQuestionRequest) returns (GetQuestionReply);
+    rpc SaveAnswer(SaveAnswerRequest) returns (SaveAnswerReply);
+}
+
+//GetQuestion
+
+message GetQuestionRequest {}
+
+message GetQuestionReply {
+    int32 id = 1;
+    string type = 2;
+    int32 difficulty = 3;
+    string topic = 4;
+    optional string skill = 5;
+    string text = 6;
+    optional string image_url = 7;
+    optional bytes options = 8;
+    optional string explanation = 9;
+    optional bytes data = 10;
+    bool is_active = 11;
+}
+
+
+//SaveAnswer
+
+message SaveAnswerRequest {
+    int64 user_id = 1;
+    int32 question_id = 2;
+    bytes answer_json = 3;
+}
+
+message SaveAnswerReply {
+    int64 id = 1;
+    bool is_correct = 2;
+    google.protobuf.Timestamp created_at = 3;
+}
+
+
+

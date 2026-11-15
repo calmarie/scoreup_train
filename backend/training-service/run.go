@@ -1,0 +1,81 @@
+package main
+
+import (
+	"context"
+	"fmt"
+	"log/slog"
+	"net"
+	"os"
+	"os/signal"
+	"syscall"
+
+	pb "github.com/calmarie/scoreup_train/backend/gen/training"
+	"github.com/calmarie/scoreup_train/backend/training-service/internal/question"
+	"github.com/calmarie/scoreup_train/backend/training-service/postgres"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
+)
+
+type trainingGRPCserver struct {
+	pb.UnimplementedTrainingServer
+	service *question.Service
+}
+
+func run(logger *slog.Logger) error {
+
+	ctx, stop := signal.NotifyContext(
+		context.Background(),
+		os.Interrupt,
+		syscall.SIGTERM,
+	)
+	defer stop()
+
+	lis, err := net.Listen("tcp", ":50052")
+	if err != nil {
+		return fmt.Errorf("error on listener :50052 creation: %w", err)
+	}
+	defer lis.Close()
+
+	url, err := postgres.DatabaseURL()
+	if err != nil {
+		return fmt.Errorf("error get database URL: %w", err)
+	}
+
+	db, err := postgres.Connect(ctx, url)
+	if err != nil {
+		return fmt.Errorf("error connect database: %w", err)
+	}
+	defer db.Close()
+
+	questionService := question.NewService(question.NewRepository(db))
+	srv := &trainingGRPCserver{service: questionService}
+
+	creds, err := credentials.NewServerTLSFromFile(
+		"certs/training.crt",
+		"certs/training.key",
+	)
+	if err != nil {
+		return fmt.Errorf("load training gRPC certificate: %w", err)
+	}
+
+	grpcServer := grpc.NewServer(grpc.Creds(creds))
+	pb.RegisterTrainingServer(grpcServer, srv)
+
+	serveErr := make(chan error, 1)
+
+	go func() {
+		serveErr <- grpcServer.Serve(lis)
+	}()
+
+	logger.Info("training gRPC server started", "address", lis.Addr())
+
+	select {
+	case <-ctx.Done():
+		logger.Info("stopping training gRPC server")
+		grpcServer.GracefulStop()
+		return nil
+
+	case err := <-serveErr:
+		return fmt.Errorf("serve training gRPC: %w", err)
+	}
+}

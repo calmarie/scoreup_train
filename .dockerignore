@@ -1,0 +1,9 @@
+.git
+.env
+.env.*
+certs
+docs
+.vscode
+.idea
+.gocache
+*.exe

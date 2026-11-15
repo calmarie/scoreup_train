@@ -1,24 +1,20 @@
-##binary creation
-
 FROM golang:1.27-alpine AS builder
 
-WORKDIR /app
+WORKDIR /src
 
-COPY go.mod ./
-COPY go.sum ./
+COPY go.mod go.sum ./
 
 RUN go mod download
 
 COPY . .
 
-RUN CGO_ENABLED=0 GOOS=linux go build -o api-gateway ./backend/api-gateway
-
-
-##execution from binary
+RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -o /out/api-gateway ./backend/api-gateway
 
 FROM alpine:3.24
 
-COPY --from=builder /app/api-gateway .
+WORKDIR /app
+
+COPY --from=builder /out/api-gateway ./api-gateway
 
 EXPOSE 8080
 
