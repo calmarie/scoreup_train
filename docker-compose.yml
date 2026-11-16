@@ -108,7 +108,7 @@ services:
   api-gateway:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: backend/api-gateway/Dockerfile
     environment:
       HTTP_PORT: "8080"
       USER_SERVICE_URL: user-service:50053

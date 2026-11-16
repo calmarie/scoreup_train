@@ -39,7 +39,8 @@ func (r *Repository) GetQuestion(ctx context.Context) (Question, error) {
 			options,
 			explanation,
 			data,
-			is_active
+			is_active,
+			xp
 		FROM questions
 		WHERE is_active = TRUE
 		ORDER BY RANDOM()
@@ -58,6 +59,7 @@ func (r *Repository) GetQuestion(ctx context.Context) (Question, error) {
 		&question.Explanation,
 		&question.Data,
 		&question.IsActive,
+		&question.XP,
 	); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return Question{}, ErrQuestionNotFound
@@ -86,7 +88,8 @@ func (r *Repository) SaveAnswer(ctx context.Context, ans Answer) (Answer, error)
 
 	sql := `INSERT INTO user_answers (user_id, question_id, answer, is_correct) 
 	VALUES($1, $2, $3, $4) 
-	RETURNING id, user_id, question_id, answer, is_correct, created_at;`
+	RETURNING id, user_id, question_id, answer, is_correct, created_at,
+		(SELECT xp FROM questions WHERE id = user_answers.question_id);`
 
 	row := r.db.QueryRow(ctx, sql, ans.UserID, ans.QuestionID, ans.Answer, ans.IsCorrect)
 
@@ -98,6 +101,7 @@ func (r *Repository) SaveAnswer(ctx context.Context, ans Answer) (Answer, error)
 		&res.Answer,
 		&res.IsCorrect,
 		&res.CreatedAt,
+		&res.XP,
 	)
 
 	if err != nil {

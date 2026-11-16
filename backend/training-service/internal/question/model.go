@@ -17,6 +17,7 @@ type Question struct {
 	Explanation *string
 	Data        json.RawMessage
 	IsActive    bool
+	XP          int
 }
 
 type SubmitAnswerRequest struct {
@@ -32,6 +33,7 @@ type Answer struct {
 	Answer     json.RawMessage
 	IsCorrect  bool
 	CreatedAt  time.Time
+	XP         int
 }
 
 type CodeAnswer struct {

@@ -39,7 +39,7 @@ func TestGRPCGetQuestionMapsServiceResult(t *testing.T) {
 	repo := questionRepositoryForGRPC{value: question.Question{
 		ID: 12, Type: "radio", Difficulty: 3, Topic: "math", Skill: &skill,
 		Text: "2 + 2?", ImageURL: &imageURL, Options: json.RawMessage(`["3","4"]`),
-		Explanation: &explanation, Data: json.RawMessage(`{"source":"test"}`), IsActive: true,
+		Explanation: &explanation, Data: json.RawMessage(`{"source":"test"}`), IsActive: true, XP: 75,
 	}}
 	srv := &trainingGRPCserver{service: question.NewService(repo)}
 
@@ -50,7 +50,7 @@ func TestGRPCGetQuestionMapsServiceResult(t *testing.T) {
 	want := &pb.GetQuestionReply{
 		Id: 12, Type: "radio", Difficulty: 3, Topic: "math", Skill: &skill,
 		Text: "2 + 2?", ImageUrl: &imageURL, Options: []byte(`["3","4"]`),
-		Explanation: &explanation, Data: []byte(`{"source":"test"}`), IsActive: true,
+		Explanation: &explanation, Data: []byte(`{"source":"test"}`), IsActive: true, Xp: 75,
 	}
 	if !proto.Equal(got, want) {
 		t.Fatalf("GetQuestion() = %v, want %v", got, want)
@@ -82,6 +82,7 @@ func (answerRepositoryForGRPC) GetCorrectAnswer(context.Context, int) (json.RawM
 func (r *answerRepositoryForGRPC) SaveAnswer(_ context.Context, answer question.Answer) (question.Answer, error) {
 	r.saved = answer
 	answer.ID = 19
+	answer.XP = 75
 	answer.CreatedAt = r.createdAt
 	return answer, nil
 }
@@ -96,7 +97,7 @@ func TestGRPCSaveAnswerMapsRequestAndTimestamp(t *testing.T) {
 	if err != nil {
 		t.Fatalf("SaveAnswer: %v", err)
 	}
-	want := &pb.SaveAnswerReply{Id: 19, IsCorrect: true, CreatedAt: timestamppb.New(createdAt)}
+	want := &pb.SaveAnswerReply{Id: 19, IsCorrect: true, CreatedAt: timestamppb.New(createdAt), Xp: 75}
 	if !proto.Equal(got, want) {
 		t.Fatalf("SaveAnswer() = %v, want %v", got, want)
 	}

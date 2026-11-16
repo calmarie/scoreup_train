@@ -29,6 +29,7 @@ message GetQuestionReply {
     optional string explanation = 9;
     optional bytes data = 10;
     bool is_active = 11;
+    int32 xp = 12;
 }
 
 
@@ -44,6 +45,7 @@ message SaveAnswerReply {
     int64 id = 1;
     bool is_correct = 2;
     google.protobuf.Timestamp created_at = 3;
+    int32 xp = 4;
 }
 
 

@@ -16,7 +16,7 @@ func (s *userGRPCserver) CreateUser(
 	req *pb.CreateUserRequest,
 ) (*pb.UserReply, error) {
 
-	user, err := s.service.CreateUser(ctx, req.TelegramId)
+	user, err := s.usersService.CreateUser(ctx, req.TelegramId)
 	if err != nil {
 		return nil, toGRPCError(err)
 	}
@@ -25,6 +25,7 @@ func (s *userGRPCserver) CreateUser(
 		Id:         user.ID,
 		TelegramId: user.TelegramID,
 		CreatedAt:  timestamppb.New(user.CreatedAt),
+		XpTotal:    user.XPTotal,
 	}, nil
 
 }
@@ -34,7 +35,7 @@ func (s *userGRPCserver) GetUserByTelegramID(
 	req *pb.GetUserByTelegramIDRequest,
 ) (*pb.UserReply, error) {
 
-	user, err := s.service.GetUserByTelegramID(ctx, req.TelegramId)
+	user, err := s.usersService.GetUserByTelegramID(ctx, req.TelegramId)
 	if err != nil {
 		return nil, toGRPCError(err)
 	}
@@ -43,6 +44,27 @@ func (s *userGRPCserver) GetUserByTelegramID(
 		Id:         user.ID,
 		TelegramId: user.TelegramID,
 		CreatedAt:  timestamppb.New(user.CreatedAt),
+		XpTotal:    user.XPTotal,
+	}, nil
+
+}
+
+func (s *userGRPCserver) AwardQuestionXP(
+	ctx context.Context,
+	req *pb.AwardQuestionXPRequest,
+) (*pb.AwardQuestionXPReply, error) {
+
+	flag, err := s.solvedQuestionsService.AwardQuestionXP(
+		ctx, req.UserId,
+		int(req.QuestionId),
+		int(req.Xp),
+	)
+	if err != nil {
+		return nil, toGRPCError(err)
+	}
+
+	return &pb.AwardQuestionXPReply{
+		Awarded: flag,
 	}, nil
 
 }

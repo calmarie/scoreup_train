@@ -51,6 +51,9 @@ func TestRepository_GetQuestion_Success(t *testing.T) {
 	if question.ID != 1 {
 		t.Errorf("id = %d, want %d", question.ID, 1)
 	}
+	if question.XP != 100 {
+		t.Errorf("xp = %d, want 100", question.XP)
+	}
 
 	if question.Type != "radio" {
 		t.Errorf("type = %q, want %q", question.Type, "radio")
@@ -255,6 +258,9 @@ func TestSaveAnswer_Success(t *testing.T) {
 
 	if res.ID != 1 {
 		t.Fatalf("got %v, want %v", res.ID, `1`)
+	}
+	if res.XP != 100 {
+		t.Fatalf("xp = %d, want 100", res.XP)
 	}
 
 	if res.UserID != userID {

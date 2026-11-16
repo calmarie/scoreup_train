@@ -33,6 +33,7 @@ func (s *trainingGRPCserver) GetQuestion(
 		Explanation: q.Explanation,
 		Data:        q.Data,
 		IsActive:    q.IsActive,
+		Xp:          int32(q.XP),
 	}, nil
 }
 
@@ -56,6 +57,7 @@ func (s *trainingGRPCserver) SaveAnswer(
 		Id:        ans.ID,
 		IsCorrect: ans.IsCorrect,
 		CreatedAt: timestamppb.New(ans.CreatedAt),
+		Xp:        int32(ans.XP),
 	}, nil
 }
 

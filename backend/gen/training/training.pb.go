@@ -73,6 +73,7 @@ type GetQuestionReply struct {
 	Explanation   *string                `protobuf:"bytes,9,opt,name=explanation,proto3,oneof" json:"explanation,omitempty"`
 	Data          []byte                 `protobuf:"bytes,10,opt,name=data,proto3,oneof" json:"data,omitempty"`
 	IsActive      bool                   `protobuf:"varint,11,opt,name=is_active,json=isActive,proto3" json:"is_active,omitempty"`
+	Xp            int32                  `protobuf:"varint,12,opt,name=xp,proto3" json:"xp,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -184,6 +185,13 @@ func (x *GetQuestionReply) GetIsActive() bool {
 	return false
 }
 
+func (x *GetQuestionReply) GetXp() int32 {
+	if x != nil {
+		return x.Xp
+	}
+	return 0
+}
+
 type SaveAnswerRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	UserId        int64                  `protobuf:"varint,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
@@ -249,6 +257,7 @@ type SaveAnswerReply struct {
 	Id            int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
 	IsCorrect     bool                   `protobuf:"varint,2,opt,name=is_correct,json=isCorrect,proto3" json:"is_correct,omitempty"`
 	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	Xp            int32                  `protobuf:"varint,4,opt,name=xp,proto3" json:"xp,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -304,12 +313,19 @@ func (x *SaveAnswerReply) GetCreatedAt() *timestamppb.Timestamp {
 	return nil
 }
 
+func (x *SaveAnswerReply) GetXp() int32 {
+	if x != nil {
+		return x.Xp
+	}
+	return 0
+}
+
 var File_backend_proto_training_training_proto protoreflect.FileDescriptor
 
 const file_backend_proto_training_training_proto_rawDesc = "" +
 	"\n" +
 	"%backend/proto/training/training.proto\x12\btraining\x1a\x1fgoogle/protobuf/timestamp.proto\"\x14\n" +
-	"\x12GetQuestionRequest\"\xf6\x02\n" +
+	"\x12GetQuestionRequest\"\x86\x03\n" +
 	"\x10GetQuestionReply\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x05R\x02id\x12\x12\n" +
 	"\x04type\x18\x02 \x01(\tR\x04type\x12\x1e\n" +
@@ -324,7 +340,8 @@ const file_backend_proto_training_training_proto_rawDesc = "" +
 	"\vexplanation\x18\t \x01(\tH\x03R\vexplanation\x88\x01\x01\x12\x17\n" +
 	"\x04data\x18\n" +
 	" \x01(\fH\x04R\x04data\x88\x01\x01\x12\x1b\n" +
-	"\tis_active\x18\v \x01(\bR\bisActiveB\b\n" +
+	"\tis_active\x18\v \x01(\bR\bisActive\x12\x0e\n" +
+	"\x02xp\x18\f \x01(\x05R\x02xpB\b\n" +
 	"\x06_skillB\f\n" +
 	"\n" +
 	"_image_urlB\n" +
@@ -337,13 +354,14 @@ const file_backend_proto_training_training_proto_rawDesc = "" +
 	"\vquestion_id\x18\x02 \x01(\x05R\n" +
 	"questionId\x12\x1f\n" +
 	"\vanswer_json\x18\x03 \x01(\fR\n" +
-	"answerJson\"{\n" +
+	"answerJson\"\x8b\x01\n" +
 	"\x0fSaveAnswerReply\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x1d\n" +
 	"\n" +
 	"is_correct\x18\x02 \x01(\bR\tisCorrect\x129\n" +
 	"\n" +
-	"created_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt2\x99\x01\n" +
+	"created_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x12\x0e\n" +
+	"\x02xp\x18\x04 \x01(\x05R\x02xp2\x99\x01\n" +
 	"\bTraining\x12G\n" +
 	"\vGetQuestion\x12\x1c.training.GetQuestionRequest\x1a\x1a.training.GetQuestionReply\x12D\n" +
 	"\n" +

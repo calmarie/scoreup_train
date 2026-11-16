@@ -10,6 +10,7 @@ import (
 	"syscall"
 
 	pb "github.com/calmarie/scoreup_train/backend/gen/user"
+	"github.com/calmarie/scoreup_train/backend/user-service/internal/solvedquestions"
 	"github.com/calmarie/scoreup_train/backend/user-service/internal/users"
 	"github.com/calmarie/scoreup_train/backend/user-service/postgres"
 	"google.golang.org/grpc"
@@ -18,7 +19,8 @@ import (
 
 type userGRPCserver struct {
 	pb.UnimplementedUserServer
-	service *users.Service
+	usersService           *users.Service
+	solvedQuestionsService *solvedquestions.Service
 }
 
 func run(logger *slog.Logger) error {
@@ -48,7 +50,11 @@ func run(logger *slog.Logger) error {
 	defer db.Close()
 
 	usersService := users.NewService(users.NewRepository(db))
-	srv := &userGRPCserver{service: usersService}
+	solvedQuestionsService := solvedquestions.NewService(solvedquestions.NewRepository(db))
+	srv := &userGRPCserver{
+		usersService:           usersService,
+		solvedQuestionsService: solvedQuestionsService,
+	}
 
 	creds, err := credentials.NewServerTLSFromFile(
 		"certs/user.crt",

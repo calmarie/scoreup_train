@@ -23,13 +23,14 @@ func NewRepository(db *pgxpool.Pool) *Repository {
 func (r *Repository) CreateUser(ctx context.Context, telegramID int64) (User, error) {
 	const create = `
 		INSERT INTO users (telegram_id) VALUES ($1)
-		RETURNING id, telegram_id, created_at;`
+		RETURNING id, telegram_id, created_at, xp_total;`
 
 	var user User
 	if err := r.db.QueryRow(ctx, create, telegramID).Scan(
 		&user.ID,
 		&user.TelegramID,
 		&user.CreatedAt,
+		&user.XPTotal,
 	); err != nil {
 		return User{}, createUserError(err)
 	}
@@ -39,7 +40,7 @@ func (r *Repository) CreateUser(ctx context.Context, telegramID int64) (User, er
 
 func (r *Repository) GetUserByTelegramID(ctx context.Context, telegramID int64) (User, error) {
 	const getUser = `
-		SELECT id, telegram_id, created_at
+		SELECT id, telegram_id, created_at, xp_total
 		FROM users
 		WHERE telegram_id = $1;`
 
@@ -48,6 +49,7 @@ func (r *Repository) GetUserByTelegramID(ctx context.Context, telegramID int64) 
 		&user.ID,
 		&user.TelegramID,
 		&user.CreatedAt,
+		&user.XPTotal,
 	); err != nil {
 		return User{}, getUserError(err)
 	}

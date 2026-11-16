@@ -100,7 +100,7 @@ func TestGetUserByTelegramIDReturnsUser(t *testing.T) {
 		if req.TelegramId != 123 {
 			t.Errorf("telegram ID = %d, want 123", req.TelegramId)
 		}
-		return &pb.UserReply{Id: 42, TelegramId: 123, CreatedAt: timestamppb.New(createdAt)}, nil
+		return &pb.UserReply{Id: 42, TelegramId: 123, CreatedAt: timestamppb.New(createdAt), XpTotal: 150}, nil
 	}}
 	recorder := serveGetUser(t, client, "123")
 	if recorder.Code != http.StatusOK {
@@ -110,7 +110,7 @@ func TestGetUserByTelegramIDReturnsUser(t *testing.T) {
 	if err := json.Unmarshal(recorder.Body.Bytes(), &user); err != nil {
 		t.Fatal(err)
 	}
-	if user.ID != 42 || user.TelegramID != 123 || !user.CreatedAt.Equal(createdAt) {
+	if user.ID != 42 || user.TelegramID != 123 || !user.CreatedAt.Equal(createdAt) || user.XPTotal != 150 {
 		t.Errorf("user = %+v, want ID 42, TelegramID 123, CreatedAt %v", user, createdAt)
 	}
 }

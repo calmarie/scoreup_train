@@ -52,6 +52,9 @@ func TestRepository_CreateUser_Success(t *testing.T) {
 		if user.CreatedAt.IsZero() {
 			t.Error("created_at must contain the creation time")
 		}
+		if user.XPTotal != 0 {
+			t.Errorf("xp_total = %d, want 0", user.XPTotal)
+		}
 	}
 
 	canceledCtx, cancel := context.WithCancel(ctx)
@@ -92,8 +95,8 @@ func TestRepository_GetUserByTelegramID(t *testing.T) {
 	const telegramID int64 = 123456789
 	var wantID int64
 	if err := db.QueryRow(ctx, `
-		INSERT INTO users (telegram_id)
-		VALUES ($1)
+		INSERT INTO users (telegram_id, xp_total)
+		VALUES ($1, 150)
 		RETURNING id;`, telegramID).Scan(&wantID); err != nil {
 		t.Fatalf("insert user: %v", err)
 	}
@@ -112,6 +115,9 @@ func TestRepository_GetUserByTelegramID(t *testing.T) {
 	}
 	if user.CreatedAt.IsZero() {
 		t.Error("created_at must contain the creation time")
+	}
+	if user.XPTotal != 150 {
+		t.Errorf("xp_total = %d, want 150", user.XPTotal)
 	}
 
 	_, err = repo.GetUserByTelegramID(ctx, telegramID+1)

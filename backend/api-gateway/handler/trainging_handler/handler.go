@@ -95,6 +95,15 @@ func (h *Handler) saveAnswer(w http.ResponseWriter, r *http.Request) {
 		IsCorrect: reply.IsCorrect,
 		CreatedAt: reply.CreatedAt.AsTime(),
 	}
+
+	awardReq := &userpb.AwardQuestionXPRequest{
+		UserId:     user.Id,
+		QuestionId: body.QuestionID,
+		Xp:         reply.Xp,
+	}
+
+	h.userClient.AwardQuestionXP(r.Context(), awardReq)
+
 	h.writeJSON(w, http.StatusCreated, answer)
 }
 
