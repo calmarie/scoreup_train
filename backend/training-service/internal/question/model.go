@@ -30,6 +30,8 @@ type Answer struct {
 	ID         int64
 	UserID     int64
 	QuestionID int
+	Topic      string
+	Difficulty int
 	Answer     json.RawMessage
 	IsCorrect  bool
 	FirstSolve bool

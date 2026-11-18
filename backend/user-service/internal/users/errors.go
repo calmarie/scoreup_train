@@ -64,6 +64,7 @@ func getUserError(err error) error {
 	return fmt.Errorf("get user by telegram id: %w: %w", ErrGetUser, err)
 }
 
+// postgresUnavailable recognizes SQLSTATE codes for connection failures, resource shortages, and server shutdown or startup.
 func postgresUnavailable(code string) bool {
 	return len(code) >= 2 && (code[:2] == "08" || code[:2] == "53") ||
 		code == "57P01" || code == "57P02" || code == "57P03"

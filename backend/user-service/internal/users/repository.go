@@ -38,6 +38,7 @@ func (r *Repository) CreateUser(ctx context.Context, telegramID int64) (User, er
 	return user, nil
 }
 
+// GetUserByTelegramID returns ErrUserNotFound when the Telegram ID has no associated account.
 func (r *Repository) GetUserByTelegramID(ctx context.Context, telegramID int64) (User, error) {
 	const getUser = `
 		SELECT id, telegram_id, created_at, xp_total

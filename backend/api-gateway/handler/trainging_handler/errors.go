@@ -24,6 +24,7 @@ var (
 	ErrSaveAnswer          = errors.New("save answer error")
 )
 
+// decodeGRPCError uses the caller's notFound error to distinguish a missing user from a missing question.
 func decodeGRPCError(err, notFound error) error {
 	var mapped error
 	switch {

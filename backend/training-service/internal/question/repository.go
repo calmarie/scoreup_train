@@ -26,6 +26,7 @@ func NewRepository(db *pgxpool.Pool) *Repository {
 	return &Repository{db: db}
 }
 
+// GetQuestion picks a random active question. Previously solved questions are eligible.
 func (r *Repository) GetQuestion(ctx context.Context) (Question, error) {
 	const questionQuery = `
 		SELECT
@@ -95,7 +96,9 @@ func (r *Repository) SaveAnswer(ctx context.Context, ans Answer) (Answer, error)
 		INSERT INTO user_answers (user_id, question_id, answer, is_correct)
 		VALUES ($1, $2, $3, $4)
 		RETURNING id, user_id, question_id, answer, is_correct, created_at,
-			(SELECT xp FROM questions WHERE id = user_answers.question_id);`
+			(SELECT xp FROM questions WHERE id = user_answers.question_id),
+			(SELECT topic FROM questions WHERE id = user_answers.question_id),
+			(SELECT difficulty FROM questions WHERE id = user_answers.question_id);`
 
 	var res Answer
 	if err := tx.QueryRow(ctx, sql, ans.UserID, ans.QuestionID, ans.Answer, ans.IsCorrect).Scan(
@@ -106,6 +109,8 @@ func (r *Repository) SaveAnswer(ctx context.Context, ans Answer) (Answer, error)
 		&res.IsCorrect,
 		&res.CreatedAt,
 		&res.XP,
+		&res.Topic,
+		&res.Difficulty,
 	); err != nil {
 		return Answer{}, fmt.Errorf("insert answer: %w", err)
 	}
@@ -122,6 +127,7 @@ func (r *Repository) SaveAnswer(ctx context.Context, ans Answer) (Answer, error)
 	return res, nil
 }
 
+// markQuestionSolved reports whether this transaction recorded the user's first solve for the question.
 func markQuestionSolved(ctx context.Context, tx pgx.Tx, answer Answer) (bool, error) {
 	const sql = `
 		INSERT INTO user_solved_questions (user_id, question_id, solved_at)

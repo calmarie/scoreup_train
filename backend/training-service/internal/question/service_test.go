@@ -20,13 +20,18 @@ func (*answerRepository) GetCorrectAnswer(context.Context, int) (json.RawMessage
 }
 
 func (r *answerRepository) SaveAnswer(_ context.Context, answer Answer) (Answer, error) {
+	answer.ID = 19
 	r.saved = answer
 	return answer, nil
 }
 
-func TestServiceSaveAnswerUsesUserIDFromRequest(t *testing.T) {
+func TestServiceSaveAnswerPublishesSavedAttempt(t *testing.T) {
 	repo := &answerRepository{}
-	service := NewService(repo)
+	var published Answer
+	service := NewService(repo, func(_ context.Context, answer Answer) error {
+		published = answer
+		return nil
+	})
 	request := SubmitAnswerRequest{
 		UserID:     42,
 		QuestionID: 5,
@@ -39,5 +44,8 @@ func TestServiceSaveAnswerUsesUserIDFromRequest(t *testing.T) {
 	}
 	if repo.saved.UserID != 42 {
 		t.Fatalf("saved user ID = %d, want 42", repo.saved.UserID)
+	}
+	if published.ID != 19 || published.UserID != 42 || published.QuestionID != 5 || !published.IsCorrect {
+		t.Fatalf("published attempt = %+v, want saved answer 19 for user 42 and question 5", published)
 	}
 }

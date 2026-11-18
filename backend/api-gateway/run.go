@@ -46,6 +46,7 @@ func run(logger *slog.Logger) error {
 	return nil
 }
 
+// connGRPCServers creates both upstream clients. The returned function closes both connections.
 func connGRPCServers() (userpb.UserClient, trainingpb.TrainingClient, func(), error) {
 	creds, err := credentials.NewClientTLSFromFile("certs/ca.pem", "")
 	if err != nil {

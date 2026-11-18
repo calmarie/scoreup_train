@@ -262,6 +262,9 @@ func TestSaveAnswer_Success(t *testing.T) {
 	if res.XP != 100 {
 		t.Fatalf("xp = %d, want 100", res.XP)
 	}
+	if res.Topic != "test topic" || res.Difficulty != 1 {
+		t.Fatalf("answer metadata = %q, %d, want test topic, 1", res.Topic, res.Difficulty)
+	}
 
 	if res.UserID != userID {
 		t.Fatalf("got %d, want %d", res.UserID, userID)

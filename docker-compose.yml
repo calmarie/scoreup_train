@@ -164,6 +164,7 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_HOST: training-postgres
       POSTGRES_PORT: "5432"
+      KAFKA_URL: kafka:19092
     volumes:
       - ./certs/training.crt:/app/certs/training.crt:ro
       - ./certs/training.key:/app/certs/training.key:ro
@@ -171,6 +172,8 @@ services:
       - "${TRAINING_GRPC_PORT:-50052}:50052"
     depends_on:
       migrate-training:
+        condition: service_completed_successfully
+      init-kafka:
         condition: service_completed_successfully
 
   stats-service:

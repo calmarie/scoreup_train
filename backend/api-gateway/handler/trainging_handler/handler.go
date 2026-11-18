@@ -100,6 +100,7 @@ func (h *Handler) saveAnswer(w http.ResponseWriter, r *http.Request) {
 	h.writeJSON(w, http.StatusCreated, answer)
 }
 
+// decodeJSON expects a single JSON value within 1 MiB and rejects unknown struct fields.
 func decodeJSON(w http.ResponseWriter, r *http.Request, target any) error {
 	r.Body = http.MaxBytesReader(w, r.Body, maxRequestBodyBytes)
 	decoder := json.NewDecoder(r.Body)

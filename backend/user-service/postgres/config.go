@@ -7,6 +7,7 @@ import (
 	"os"
 )
 
+// DatabaseURL uses POSTGRES_* credentials and USER_POSTGRES_* settings for the host, port, and database name.
 func DatabaseURL() (string, error) {
 	names := []string{
 		"POSTGRES_USER",

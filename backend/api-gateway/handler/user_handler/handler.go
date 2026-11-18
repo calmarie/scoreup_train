@@ -57,6 +57,7 @@ func (h *Handler) getUserByTelegramID(w http.ResponseWriter, r *http.Request) {
 
 }
 
+// createUser reads the Telegram ID from the URL and returns HTTP 409 if it is already registered.
 func (h *Handler) createUser(w http.ResponseWriter, r *http.Request) {
 
 	telegramID, err := strconv.ParseInt(r.PathValue("telegramID"), 10, 64)

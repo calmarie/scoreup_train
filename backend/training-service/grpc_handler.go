@@ -37,6 +37,7 @@ func (s *trainingGRPCserver) GetQuestion(
 	}, nil
 }
 
+// SaveAnswer returns the question's configured XP even for incorrect or repeated answers.
 func (s *trainingGRPCserver) SaveAnswer(
 	ctx context.Context,
 	req *pb.SaveAnswerRequest,
@@ -64,6 +65,8 @@ func (s *trainingGRPCserver) SaveAnswer(
 
 func toGRPCError(err error) error {
 	switch {
+	case errors.Is(err, question.ErrPublishAttempt):
+		return status.Error(codes.Internal, question.ErrPublishAttempt.Error())
 	case errors.Is(err, context.Canceled):
 		return status.Error(codes.Canceled, "request canceled")
 	case errors.Is(err, context.DeadlineExceeded):

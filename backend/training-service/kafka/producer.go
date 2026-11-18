@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/calmarie/scoreup_train/backend/training-service/internal/question"
 	"github.com/twmb/franz-go/pkg/kgo"
 )
 
@@ -27,8 +28,13 @@ type QuestionAttemptEvent struct {
 
 // NewProducerClient creates a Kafka client from KAFKA_URL. The caller closes it.
 func NewProducerClient() (*kgo.Client, error) {
+	broker := os.Getenv("KAFKA_URL")
+	if broker == "" {
+		return nil, fmt.Errorf("environment variable KAFKA_URL is required")
+	}
+
 	cl, err := kgo.NewClient(
-		kgo.SeedBrokers(os.Getenv("KAFKA_URL")),
+		kgo.SeedBrokers(broker),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("create Kafka producer: %w", err)
@@ -37,7 +43,11 @@ func NewProducerClient() (*kgo.Client, error) {
 }
 
 // Produce publishes one attempt to question-solved and waits for Kafka to acknowledge it.
-func Produce(ctx context.Context, logger *slog.Logger, cl *kgo.Client, event QuestionAttemptEvent) error {
+func Produce(ctx context.Context, logger *slog.Logger, cl *kgo.Client, answer question.Answer) error {
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	event := newAttemptEvent(answer)
 	value, err := json.Marshal(event)
 	if err != nil {
 		return fmt.Errorf("encode Kafka event: %w", err)
@@ -55,4 +65,23 @@ func Produce(ctx context.Context, logger *slog.Logger, cl *kgo.Client, event Que
 
 	logger.Info("question attempt sent", "answer_id", event.AnswerID, "user_id", event.UserID)
 	return nil
+}
+
+// newAttemptEvent includes the question's XP only on the user's first solve.
+func newAttemptEvent(answer question.Answer) QuestionAttemptEvent {
+	var awardedXP int64
+	if answer.FirstSolve {
+		awardedXP = int64(answer.XP)
+	}
+	return QuestionAttemptEvent{
+		AnswerID:   answer.ID,
+		UserID:     answer.UserID,
+		QuestionID: int64(answer.QuestionID),
+		Topic:      answer.Topic,
+		Difficulty: answer.Difficulty,
+		IsCorrect:  answer.IsCorrect,
+		XP:         awardedXP,
+		OccurredAt: answer.CreatedAt,
+		FirstSolve: answer.FirstSolve,
+	}
 }

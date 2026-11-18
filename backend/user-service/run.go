@@ -21,6 +21,7 @@ type userGRPCserver struct {
 	usersService *users.Service
 }
 
+// run drains in-flight RPCs before closing the database pool on shutdown.
 func run(logger *slog.Logger) error {
 
 	ctx, stop := signal.NotifyContext(
