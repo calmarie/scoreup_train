@@ -54,10 +54,11 @@ func (s *trainingGRPCserver) SaveAnswer(
 	}
 
 	return &pb.SaveAnswerReply{
-		Id:        ans.ID,
-		IsCorrect: ans.IsCorrect,
-		CreatedAt: timestamppb.New(ans.CreatedAt),
-		Xp:        int32(ans.XP),
+		Id:         ans.ID,
+		IsCorrect:  ans.IsCorrect,
+		CreatedAt:  timestamppb.New(ans.CreatedAt),
+		Xp:         int32(ans.XP),
+		FirstSolve: ans.FirstSolve,
 	}, nil
 }
 

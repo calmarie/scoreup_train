@@ -30,6 +30,7 @@ func (s *Service) SaveAnswer(ctx context.Context, userAns SubmitAnswerRequest) (
 		return Answer{}, err
 	}
 
+	// (hardcoded) Byte equality makes JSON formatting and array order part of answer matching.
 	isCorrect := bytes.Equal(correctAns, userAns.Answer)
 
 	res := Answer{

@@ -279,4 +279,24 @@ func TestSaveAnswer_Success(t *testing.T) {
 		t.Fatalf("got %t, want %t", res.IsCorrect, true)
 	}
 
+	if !res.FirstSolve {
+		t.Fatal("first correct answer was not marked as the first solve")
+	}
+
+	repeat, err := repo.SaveAnswer(ctx, ans)
+	if err != nil || repeat.FirstSolve || repeat.ID == res.ID {
+		t.Fatalf("save repeated answer = %+v, %v", repeat, err)
+	}
+
+	ans.UserID++
+	ans.IsCorrect = false
+	wrong, err := repo.SaveAnswer(ctx, ans)
+	if err != nil || wrong.FirstSolve {
+		t.Fatalf("save incorrect answer = %+v, %v", wrong, err)
+	}
+	ans.IsCorrect = true
+	correct, err := repo.SaveAnswer(ctx, ans)
+	if err != nil || !correct.FirstSolve {
+		t.Fatalf("save first correct answer after an incorrect attempt = %+v, %v", correct, err)
+	}
 }

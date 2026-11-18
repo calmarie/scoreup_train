@@ -11,7 +11,6 @@ import "google/protobuf/timestamp.proto";
 service User {
     rpc CreateUser(CreateUserRequest) returns (UserReply);
     rpc GetUserByTelegramID(GetUserByTelegramIDRequest) returns (UserReply);
-    rpc AwardQuestionXP(AwardQuestionXPRequest) returns (AwardQuestionXPReply);
 }
 
 message CreateUserRequest {
@@ -27,14 +26,4 @@ message UserReply {
     int64 telegram_id = 2;
     google.protobuf.Timestamp created_at = 3;
     int32 xp_total = 4;
-}
-
-message AwardQuestionXPRequest {
-    int64 user_id = 1;
-    int32 question_id = 2;
-    int32 xp = 3;
-}
-
-message AwardQuestionXPReply {
-    bool awarded = 1;
 }

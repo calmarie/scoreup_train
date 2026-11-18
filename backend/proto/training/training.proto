@@ -46,6 +46,7 @@ message SaveAnswerReply {
     bool is_correct = 2;
     google.protobuf.Timestamp created_at = 3;
     int32 xp = 4;
+    bool first_solve = 5;
 }
 
 

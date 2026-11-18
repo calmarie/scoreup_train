@@ -23,7 +23,6 @@ const _ = grpc.SupportPackageIsVersion9
 const (
 	User_CreateUser_FullMethodName          = "/user.User/CreateUser"
 	User_GetUserByTelegramID_FullMethodName = "/user.User/GetUserByTelegramID"
-	User_AwardQuestionXP_FullMethodName     = "/user.User/AwardQuestionXP"
 )
 
 // UserClient is the client API for User service.
@@ -32,7 +31,6 @@ const (
 type UserClient interface {
 	CreateUser(ctx context.Context, in *CreateUserRequest, opts ...grpc.CallOption) (*UserReply, error)
 	GetUserByTelegramID(ctx context.Context, in *GetUserByTelegramIDRequest, opts ...grpc.CallOption) (*UserReply, error)
-	AwardQuestionXP(ctx context.Context, in *AwardQuestionXPRequest, opts ...grpc.CallOption) (*AwardQuestionXPReply, error)
 }
 
 type userClient struct {
@@ -63,23 +61,12 @@ func (c *userClient) GetUserByTelegramID(ctx context.Context, in *GetUserByTeleg
 	return out, nil
 }
 
-func (c *userClient) AwardQuestionXP(ctx context.Context, in *AwardQuestionXPRequest, opts ...grpc.CallOption) (*AwardQuestionXPReply, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(AwardQuestionXPReply)
-	err := c.cc.Invoke(ctx, User_AwardQuestionXP_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 // UserServer is the server API for User service.
 // All implementations must embed UnimplementedUserServer
 // for forward compatibility.
 type UserServer interface {
 	CreateUser(context.Context, *CreateUserRequest) (*UserReply, error)
 	GetUserByTelegramID(context.Context, *GetUserByTelegramIDRequest) (*UserReply, error)
-	AwardQuestionXP(context.Context, *AwardQuestionXPRequest) (*AwardQuestionXPReply, error)
 	mustEmbedUnimplementedUserServer()
 }
 
@@ -95,9 +82,6 @@ func (UnimplementedUserServer) CreateUser(context.Context, *CreateUserRequest) (
 }
 func (UnimplementedUserServer) GetUserByTelegramID(context.Context, *GetUserByTelegramIDRequest) (*UserReply, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetUserByTelegramID not implemented")
-}
-func (UnimplementedUserServer) AwardQuestionXP(context.Context, *AwardQuestionXPRequest) (*AwardQuestionXPReply, error) {
-	return nil, status.Error(codes.Unimplemented, "method AwardQuestionXP not implemented")
 }
 func (UnimplementedUserServer) mustEmbedUnimplementedUserServer() {}
 func (UnimplementedUserServer) testEmbeddedByValue()              {}
@@ -156,24 +140,6 @@ func _User_GetUserByTelegramID_Handler(srv interface{}, ctx context.Context, dec
 	return interceptor(ctx, in, info, handler)
 }
 
-func _User_AwardQuestionXP_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(AwardQuestionXPRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(UserServer).AwardQuestionXP(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: User_AwardQuestionXP_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(UserServer).AwardQuestionXP(ctx, req.(*AwardQuestionXPRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 // User_ServiceDesc is the grpc.ServiceDesc for User service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -188,10 +154,6 @@ var User_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetUserByTelegramID",
 			Handler:    _User_GetUserByTelegramID_Handler,
-		},
-		{
-			MethodName: "AwardQuestionXP",
-			Handler:    _User_AwardQuestionXP_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

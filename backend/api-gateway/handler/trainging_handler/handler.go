@@ -72,6 +72,7 @@ func (h *Handler) saveAnswer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Resolve the Telegram ID to the internal user ID required by the training service.
 	user, err := h.userClient.GetUserByTelegramID(r.Context(), &userpb.GetUserByTelegramIDRequest{
 		TelegramId: body.TelegramID,
 	})
@@ -96,14 +97,6 @@ func (h *Handler) saveAnswer(w http.ResponseWriter, r *http.Request) {
 		CreatedAt: reply.CreatedAt.AsTime(),
 	}
 
-	awardReq := &userpb.AwardQuestionXPRequest{
-		UserId:     user.Id,
-		QuestionId: body.QuestionID,
-		Xp:         reply.Xp,
-	}
-
-	h.userClient.AwardQuestionXP(r.Context(), awardReq)
-
 	h.writeJSON(w, http.StatusCreated, answer)
 }
 
@@ -114,6 +107,7 @@ func decodeJSON(w http.ResponseWriter, r *http.Request, target any) error {
 	if err := decoder.Decode(target); err != nil {
 		return requestBodyError(err)
 	}
+	// A second decode allows trailing whitespace while rejecting another JSON value.
 	if err := decoder.Decode(new(any)); !errors.Is(err, io.EOF) {
 		if err != nil {
 			return requestBodyError(err)

@@ -1,4 +1,38 @@
 services:
+  kafka:
+    image: apache/kafka:4.1.1
+    ports:
+      - "127.0.0.1:9092:9092"
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: INTERNAL://:19092,EXTERNAL://:9092,CONTROLLER://:29093
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:19092,EXTERNAL://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:29093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
+    healthcheck:
+      test: ["CMD", "/opt/kafka/bin/kafka-topics.sh", "--bootstrap-server", "kafka:19092", "--list"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    volumes:
+      - kafka-data:/var/lib/kafka/data
+
+  init-kafka:
+    image: apache/kafka:4.1.1
+    depends_on:
+      kafka:
+        condition: service_healthy
+    entrypoint: ["/opt/kafka/bin/kafka-topics.sh"]
+    command: ["--bootstrap-server", "kafka:19092", "--create", "--if-not-exists", "--topic", "question-solved", "--partitions", "1", "--replication-factor", "1"]
+
   user-postgres:
     image: postgres:18
     environment:
@@ -33,6 +67,23 @@ services:
     volumes:
       - training-pg-local-data:/var/lib/postgresql
 
+  stats-postgres:
+    image: postgres:18
+    environment:
+      POSTGRES_USER: ${STATS_POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${STATS_POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${STATS_POSTGRES_DB:-scoreup_stats}
+    ports:
+      - "127.0.0.1:${STATS_POSTGRES_PORT:-5435}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", 'PGPASSWORD="$${POSTGRES_PASSWORD}" psql -h stats-postgres -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}" -tAc "SELECT 1" >/dev/null']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    volumes:
+      - stats-pg-data:/var/lib/postgresql
+
   migrate-user:
     image: migrate/migrate
     volumes:
@@ -65,6 +116,23 @@ services:
       - /migrations
       - -database
       - postgres://training-postgres:5432/${POSTGRES_DB}?sslmode=disable
+      - up
+
+  migrate-stats:
+    image: migrate/migrate
+    volumes:
+      - ./backend/stats-service/postgres/migrations:/migrations:ro
+    environment:
+      PGUSER: ${STATS_POSTGRES_USER:-postgres}
+      PGPASSWORD: ${STATS_POSTGRES_PASSWORD:-postgres}
+    depends_on:
+      stats-postgres:
+        condition: service_healthy
+    command:
+      - -path
+      - /migrations
+      - -database
+      - postgres://stats-postgres:5432/${STATS_POSTGRES_DB:-scoreup_stats}?sslmode=disable
       - up
 
   user-service:
@@ -103,6 +171,23 @@ services:
       - "${TRAINING_GRPC_PORT:-50052}:50052"
     depends_on:
       migrate-training:
+        condition: service_completed_successfully
+
+  stats-service:
+    build:
+      context: .
+      dockerfile: backend/stats-service/Dockerfile
+    environment:
+      POSTGRES_USER: ${STATS_POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${STATS_POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${STATS_POSTGRES_DB:-scoreup_stats}
+      POSTGRES_HOST: stats-postgres
+      POSTGRES_PORT: "5432"
+      KAFKA_URL: kafka:19092
+    depends_on:
+      migrate-stats:
+        condition: service_completed_successfully
+      init-kafka:
         condition: service_completed_successfully
 
   api-gateway:
@@ -160,6 +245,8 @@ services:
       - up
 
 volumes:
+  kafka-data:
   user-pg-data:
   training-pg-local-data:
+  stats-pg-data:
   training-test-pg-data:

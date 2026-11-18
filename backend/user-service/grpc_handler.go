@@ -49,26 +49,6 @@ func (s *userGRPCserver) GetUserByTelegramID(
 
 }
 
-func (s *userGRPCserver) AwardQuestionXP(
-	ctx context.Context,
-	req *pb.AwardQuestionXPRequest,
-) (*pb.AwardQuestionXPReply, error) {
-
-	flag, err := s.solvedQuestionsService.AwardQuestionXP(
-		ctx, req.UserId,
-		int(req.QuestionId),
-		int(req.Xp),
-	)
-	if err != nil {
-		return nil, toGRPCError(err)
-	}
-
-	return &pb.AwardQuestionXPReply{
-		Awarded: flag,
-	}, nil
-
-}
-
 func toGRPCError(err error) error {
 	switch {
 	case errors.Is(err, context.Canceled):

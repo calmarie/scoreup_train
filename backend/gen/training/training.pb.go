@@ -258,6 +258,7 @@ type SaveAnswerReply struct {
 	IsCorrect     bool                   `protobuf:"varint,2,opt,name=is_correct,json=isCorrect,proto3" json:"is_correct,omitempty"`
 	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	Xp            int32                  `protobuf:"varint,4,opt,name=xp,proto3" json:"xp,omitempty"`
+	FirstSolve    bool                   `protobuf:"varint,5,opt,name=first_solve,json=firstSolve,proto3" json:"first_solve,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -320,6 +321,13 @@ func (x *SaveAnswerReply) GetXp() int32 {
 	return 0
 }
 
+func (x *SaveAnswerReply) GetFirstSolve() bool {
+	if x != nil {
+		return x.FirstSolve
+	}
+	return false
+}
+
 var File_backend_proto_training_training_proto protoreflect.FileDescriptor
 
 const file_backend_proto_training_training_proto_rawDesc = "" +
@@ -354,14 +362,16 @@ const file_backend_proto_training_training_proto_rawDesc = "" +
 	"\vquestion_id\x18\x02 \x01(\x05R\n" +
 	"questionId\x12\x1f\n" +
 	"\vanswer_json\x18\x03 \x01(\fR\n" +
-	"answerJson\"\x8b\x01\n" +
+	"answerJson\"\xac\x01\n" +
 	"\x0fSaveAnswerReply\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x1d\n" +
 	"\n" +
 	"is_correct\x18\x02 \x01(\bR\tisCorrect\x129\n" +
 	"\n" +
 	"created_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x12\x0e\n" +
-	"\x02xp\x18\x04 \x01(\x05R\x02xp2\x99\x01\n" +
+	"\x02xp\x18\x04 \x01(\x05R\x02xp\x12\x1f\n" +
+	"\vfirst_solve\x18\x05 \x01(\bR\n" +
+	"firstSolve2\x99\x01\n" +
 	"\bTraining\x12G\n" +
 	"\vGetQuestion\x12\x1c.training.GetQuestionRequest\x1a\x1a.training.GetQuestionReply\x12D\n" +
 	"\n" +

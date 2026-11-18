@@ -83,6 +83,7 @@ func (r *answerRepositoryForGRPC) SaveAnswer(_ context.Context, answer question.
 	r.saved = answer
 	answer.ID = 19
 	answer.XP = 75
+	answer.FirstSolve = answer.IsCorrect
 	answer.CreatedAt = r.createdAt
 	return answer, nil
 }
@@ -97,7 +98,7 @@ func TestGRPCSaveAnswerMapsRequestAndTimestamp(t *testing.T) {
 	if err != nil {
 		t.Fatalf("SaveAnswer: %v", err)
 	}
-	want := &pb.SaveAnswerReply{Id: 19, IsCorrect: true, CreatedAt: timestamppb.New(createdAt), Xp: 75}
+	want := &pb.SaveAnswerReply{Id: 19, IsCorrect: true, CreatedAt: timestamppb.New(createdAt), Xp: 75, FirstSolve: true}
 	if !proto.Equal(got, want) {
 		t.Fatalf("SaveAnswer() = %v, want %v", got, want)
 	}

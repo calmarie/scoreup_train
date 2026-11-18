@@ -32,6 +32,7 @@ type Answer struct {
 	QuestionID int
 	Answer     json.RawMessage
 	IsCorrect  bool
+	FirstSolve bool
 	CreatedAt  time.Time
 	XP         int
 }

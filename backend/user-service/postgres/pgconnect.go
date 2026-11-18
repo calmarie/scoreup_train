@@ -10,7 +10,7 @@ import (
 
 const connectTimeout = 5 * time.Second
 
-// creates connection with postgres database, returns thread-safe connection pool for postgres
+// Connect opens a PostgreSQL pool and checks that the database is reachable.
 func Connect(ctx context.Context, databaseURL string) (*pgxpool.Pool, error) {
 	connectCtx, cancel := context.WithTimeout(ctx, connectTimeout)
 	defer cancel()

@@ -19,7 +19,7 @@ func NewRepository(db *pgxpool.Pool) *Repository {
 	return &Repository{db: db}
 }
 
-// hardcoded user creation, in advance it will be supplemented with telegram user ID
+// CreateUser stores the Telegram ID and returns the user with its database defaults.
 func (r *Repository) CreateUser(ctx context.Context, telegramID int64) (User, error) {
 	const create = `
 		INSERT INTO users (telegram_id) VALUES ($1)
