@@ -16,8 +16,6 @@ type Handler struct {
 	logger *slog.Logger
 }
 
-const maxRequestBodyBytes int64 = 1 << 20
-
 func NewHandler(client pb.UserClient, logger *slog.Logger) *Handler {
 	return &Handler{client: client, logger: logger}
 }

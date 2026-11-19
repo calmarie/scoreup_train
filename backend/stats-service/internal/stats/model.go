@@ -27,3 +27,17 @@ type UserStats struct {
 	BestCorrectStreak    int
 	LastSolvedOn         *time.Time
 }
+
+type UserStatsDTO struct {
+	UserID               int64      `json:"user_id"`
+	XP                   int64      `json:"xp"`
+	TotalAnswers         int64      `json:"total_answers"`
+	CorrectAnswers       int64      `json:"correct_answers"`
+	UniqueSolved         int64      `json:"unique_solved"`
+	ActiveDays           int        `json:"active_days"`
+	CurrentStreak        int        `json:"current_streak"`
+	MaxStreak            int        `json:"max_streak"`
+	CurrentCorrectStreak int        `json:"current_correct_streak"`
+	BestCorrectStreak    int        `json:"best_correct_streak"`
+	LastSolvedOn         *time.Time `json:"last_solved_on"`
+}

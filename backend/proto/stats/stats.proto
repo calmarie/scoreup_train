@@ -1,0 +1,44 @@
+syntax = "proto3";
+
+package stats;
+
+option go_package = "github.com/calmarie/scoreup_train/backend/gen/stats;statspb";
+
+import "google/type/date.proto";
+
+service Stats {
+    rpc GetStats(UserStatsRequest) returns (GetStatsReply);
+    rpc GetXP(UserStatsRequest) returns (GetXPReply);
+    rpc GetCurrentStreak(UserStatsRequest) returns (GetCurrentStreakReply);
+    rpc GetCurrentCorrectStreak(UserStatsRequest) returns (GetCurrentCorrectStreakReply);
+}
+
+message UserStatsRequest {
+    int64 user_id = 1;
+}
+
+message GetStatsReply {
+    int64 user_id = 1;
+    int64 xp = 2;
+    int64 total_answers = 3;
+    int64 correct_answers = 4;
+    int64 unique_solved = 5;
+    int32 active_days = 6;
+    int64 current_streak = 7;
+    int64 max_streak = 8;
+    int64 current_correct_streak = 9;
+    int64 best_correct_streak = 10;
+    google.type.Date last_solved_on = 11; // UTC calendar date. Unset until the first solve.
+}
+
+message GetXPReply {
+    int64 xp = 1;
+}
+
+message GetCurrentStreakReply {
+    int64 current_streak = 1;
+}
+
+message GetCurrentCorrectStreakReply {
+    int64 current_correct_streak = 1;
+}

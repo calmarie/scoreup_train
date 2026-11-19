@@ -17,6 +17,22 @@ func NewService(repository StatsRepository) *Service {
 	return &Service{repository: repository}
 }
 
+func (s *Service) GetStats(ctx context.Context, userID int64) (UserStatsDTO, error) {
+	return s.repository.GetStats(ctx, userID)
+}
+
+func (s *Service) GetXP(ctx context.Context, userID int64) (int64, error) {
+	return s.repository.GetXP(ctx, userID)
+}
+
+func (s *Service) GetCurrentStreak(ctx context.Context, userID int64) (int64, error) {
+	return s.repository.GetCurrentStreak(ctx, userID)
+}
+
+func (s *Service) GetCurrentCorrectStreak(ctx context.Context, userID int64) (int64, error) {
+	return s.repository.GetCurrentCorrectStreak(ctx, userID)
+}
+
 // Save updates the user's totals and returns false if the attempt was already counted.
 func (s *Service) Save(ctx context.Context, event QuestionAttemptEvent) (bool, error) {
 	return s.repository.Update(ctx, event.UserID, event.AnswerID, func(totals *UserStats) {

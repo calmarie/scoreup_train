@@ -1,10 +1,13 @@
 package stats
 
 import (
+	"context"
+	"errors"
 	"os"
 	"testing"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -54,18 +57,34 @@ func TestSave(t *testing.T) {
 	if saved, err := service.Save(ctx, events[0]); err != nil || saved {
 		t.Fatalf("redelivery: saved=%t, err=%v", saved, err)
 	}
-	var xp, total, correct, unique, days, streak, maxStreak, consecutive, best int
-	var lastSolved time.Time
-	err = db.QueryRow(ctx, `SELECT xp, total_answers, correct_answers, unique_solved, active_days,
-		current_streak, max_streak, current_correct_streak, best_correct_streak, last_solved_on
-		FROM user_stats WHERE user_id = 7`).Scan(&xp, &total, &correct, &unique, &days,
-		&streak, &maxStreak, &consecutive, &best, &lastSolved)
+	totals, err := service.GetStats(ctx, 7)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if xp != 30 || total != 5 || correct != 4 || unique != 2 || days != 3 ||
-		streak != 1 || maxStreak != 2 || consecutive != 1 || best != 3 || lastSolved.Format(time.DateOnly) != "2026-01-04" {
-		t.Fatalf("xp=%d total=%d correct=%d unique=%d days=%d streak=%d max=%d consecutive=%d best=%d last=%s",
-			xp, total, correct, unique, days, streak, maxStreak, consecutive, best, lastSolved)
+	if totals.UserID != 7 || totals.XP != 30 || totals.TotalAnswers != 5 || totals.CorrectAnswers != 4 ||
+		totals.UniqueSolved != 2 || totals.ActiveDays != 3 || totals.CurrentStreak != 1 || totals.MaxStreak != 2 ||
+		totals.CurrentCorrectStreak != 1 || totals.BestCorrectStreak != 3 ||
+		totals.LastSolvedOn == nil || totals.LastSolvedOn.Format(time.DateOnly) != "2026-01-04" {
+		t.Fatalf("unexpected stats: %+v", totals)
+	}
+
+	for _, check := range []struct {
+		name string
+		get  func(context.Context, int64) (int64, error)
+		want int64
+	}{
+		{"XP", service.GetXP, 30},
+		{"current streak", service.GetCurrentStreak, 1},
+		{"current correct streak", service.GetCurrentCorrectStreak, 1},
+	} {
+		if got, err := check.get(ctx, 7); err != nil || got != check.want {
+			t.Errorf("%s = %d, err = %v, want %d", check.name, got, err, check.want)
+		}
+		if _, err := check.get(ctx, 8); !errors.Is(err, pgx.ErrNoRows) {
+			t.Errorf("%s for missing user: %v, want ErrNoRows", check.name, err)
+		}
+	}
+	if _, err := service.GetStats(ctx, 8); !errors.Is(err, pgx.ErrNoRows) {
+		t.Errorf("stats for missing user: %v, want ErrNoRows", err)
 	}
 }

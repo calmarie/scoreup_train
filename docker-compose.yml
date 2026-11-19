@@ -74,7 +74,7 @@ services:
       POSTGRES_PASSWORD: ${STATS_POSTGRES_PASSWORD:-postgres}
       POSTGRES_DB: ${STATS_POSTGRES_DB:-scoreup_stats}
     ports:
-      - "127.0.0.1:${STATS_POSTGRES_PORT:-5435}:5432"
+      - "127.0.0.1:${STATS_POSTGRES_PORT:-5436}:5432"
     healthcheck:
       test: ["CMD-SHELL", 'PGPASSWORD="$${POSTGRES_PASSWORD}" psql -h stats-postgres -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}" -tAc "SELECT 1" >/dev/null']
       interval: 5s
@@ -187,6 +187,9 @@ services:
       POSTGRES_HOST: stats-postgres
       POSTGRES_PORT: "5432"
       KAFKA_URL: kafka:19092
+    volumes:
+      - ./certs/stats.crt:/app/certs/stats.crt:ro
+      - ./certs/stats.key:/app/certs/stats.key:ro
     depends_on:
       migrate-stats:
         condition: service_completed_successfully
@@ -201,6 +204,7 @@ services:
       HTTP_PORT: "8080"
       USER_SERVICE_URL: user-service:50053
       TRAINING_SERVICE_URL: training-service:50052
+      STATS_SERVICE_URL: stats-service:50054
     volumes:
       - ./certs/ca.pem:/app/certs/ca.pem:ro
     ports:
@@ -209,6 +213,8 @@ services:
       user-service:
         condition: service_started
       training-service:
+        condition: service_started
+      stats-service:
         condition: service_started
 
   training-postgres-test:

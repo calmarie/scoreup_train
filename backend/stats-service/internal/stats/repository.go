@@ -9,6 +9,10 @@ import (
 
 type StatsRepository interface {
 	Update(ctx context.Context, userID, answerID int64, apply func(*UserStats)) (bool, error)
+	GetStats(ctx context.Context, userID int64) (UserStatsDTO, error)
+	GetXP(ctx context.Context, userID int64) (int64, error)
+	GetCurrentStreak(ctx context.Context, userID int64) (int64, error)
+	GetCurrentCorrectStreak(ctx context.Context, userID int64) (int64, error)
 }
 
 type Repository struct {
@@ -69,4 +73,44 @@ func (r *Repository) Update(ctx context.Context, userID, answerID int64, apply f
 		return false, fmt.Errorf("commit stats update: %w", err)
 	}
 	return true, nil
+}
+
+func (r *Repository) GetXP(ctx context.Context, userID int64) (int64, error) {
+	var xp int64
+	if err := r.db.QueryRow(ctx, "SELECT xp FROM user_stats WHERE user_id = $1", userID).Scan(&xp); err != nil {
+		return 0, fmt.Errorf("get user XP: %w", err)
+	}
+	return xp, nil
+}
+
+func (r *Repository) GetCurrentStreak(ctx context.Context, userID int64) (int64, error) {
+	var streak int64
+	if err := r.db.QueryRow(ctx, "SELECT current_streak FROM user_stats WHERE user_id = $1", userID).Scan(&streak); err != nil {
+		return 0, fmt.Errorf("get current streak: %w", err)
+	}
+	return streak, nil
+}
+
+func (r *Repository) GetCurrentCorrectStreak(ctx context.Context, userID int64) (int64, error) {
+	var streak int64
+	if err := r.db.QueryRow(ctx, "SELECT current_correct_streak FROM user_stats WHERE user_id = $1", userID).Scan(&streak); err != nil {
+		return 0, fmt.Errorf("get current correct streak: %w", err)
+	}
+	return streak, nil
+}
+
+func (r *Repository) GetStats(ctx context.Context, userID int64) (UserStatsDTO, error) {
+	var totals UserStatsDTO
+	err := r.db.QueryRow(ctx, `
+		SELECT user_id, xp, total_answers, correct_answers, unique_solved, active_days,
+			current_streak, max_streak, current_correct_streak, best_correct_streak, last_solved_on
+		FROM user_stats WHERE user_id = $1`, userID,
+	).Scan(
+		&totals.UserID, &totals.XP, &totals.TotalAnswers, &totals.CorrectAnswers, &totals.UniqueSolved, &totals.ActiveDays,
+		&totals.CurrentStreak, &totals.MaxStreak, &totals.CurrentCorrectStreak, &totals.BestCorrectStreak, &totals.LastSolvedOn,
+	)
+	if err != nil {
+		return UserStatsDTO{}, fmt.Errorf("get user stats: %w", err)
+	}
+	return totals, nil
 }
