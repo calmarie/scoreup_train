@@ -2,6 +2,7 @@ package stats
 
 import (
 	"context"
+	"math"
 	"time"
 )
 
@@ -18,7 +19,15 @@ func NewService(repository StatsRepository) *Service {
 }
 
 func (s *Service) GetStats(ctx context.Context, userID int64) (UserStatsDTO, error) {
-	return s.repository.GetStats(ctx, userID)
+	totals, err := s.repository.GetStats(ctx, userID)
+	if err != nil {
+		return totals, err
+	}
+	if totals.TotalAnswers > 0 {
+		percent := float64(totals.CorrectAnswers) / float64(totals.TotalAnswers) * 100
+		totals.AccuracyPercent = math.Round(percent*100) / 100
+	}
+	return totals, nil
 }
 
 func (s *Service) GetXP(ctx context.Context, userID int64) (int64, error) {

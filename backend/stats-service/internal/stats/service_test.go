@@ -1,9 +1,38 @@
 package stats
 
 import (
+	"context"
 	"testing"
 	"time"
 )
+
+type statsReadRepository struct {
+	StatsRepository
+	totals UserStatsDTO
+}
+
+func (r statsReadRepository) GetStats(context.Context, int64) (UserStatsDTO, error) {
+	return r.totals, nil
+}
+
+func TestGetStatsCalculatesAccuracy(t *testing.T) {
+	for _, tc := range []struct {
+		name   string
+		totals UserStatsDTO
+		want   float64
+	}{
+		{"fraction", UserStatsDTO{TotalAnswers: 7, CorrectAnswers: 4}, 57.14},
+		{"no attempts", UserStatsDTO{}, 0},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			service := NewService(statsReadRepository{totals: tc.totals})
+			got, err := service.GetStats(t.Context(), 42)
+			if err != nil || got.AccuracyPercent != tc.want {
+				t.Fatalf("accuracy = %g, err = %v, want %g", got.AccuracyPercent, err, tc.want)
+			}
+		})
+	}
+}
 
 func TestDailyStreak(t *testing.T) {
 	today := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)

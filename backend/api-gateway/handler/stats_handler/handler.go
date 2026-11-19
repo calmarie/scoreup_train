@@ -47,8 +47,7 @@ func (h *Handler) getStats(w http.ResponseWriter, r *http.Request) {
 	h.writeJSON(w, http.StatusOK, Stats{
 		UserID:               reply.UserId,
 		XP:                   reply.Xp,
-		TotalAnswers:         reply.TotalAnswers,
-		CorrectAnswers:       reply.CorrectAnswers,
+		AccuracyPercent:      reply.AccuracyPercent,
 		UniqueSolved:         reply.UniqueSolved,
 		ActiveDays:           reply.ActiveDays,
 		CurrentStreak:        reply.CurrentStreak,

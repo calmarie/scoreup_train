@@ -49,6 +49,7 @@ func (s *Handler) GetStats(
 		CurrentCorrectStreak: int64(totals.CurrentCorrectStreak),
 		BestCorrectStreak:    int64(totals.BestCorrectStreak),
 		LastSolvedOn:         lastSolved,
+		AccuracyPercent:      totals.AccuracyPercent,
 	}, nil
 }
 

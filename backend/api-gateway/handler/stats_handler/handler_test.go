@@ -36,11 +36,15 @@ func TestStatsRoutesLookUpTelegramUser(t *testing.T) {
 		{
 			"stats", statspb.Stats_GetStats_FullMethodName,
 			&statspb.GetStatsReply{
-				UserId: 42, Xp: 90, TotalAnswers: 8, CorrectAnswers: 6, UniqueSolved: 3, ActiveDays: 4,
+				UserId: 42, Xp: 90, AccuracyPercent: 57.14, UniqueSolved: 3, ActiveDays: 4,
 				CurrentStreak: 2, MaxStreak: 4, CurrentCorrectStreak: 1, BestCorrectStreak: 5,
 				LastSolvedOn: &date.Date{Year: 2026, Month: 11, Day: 9},
 			},
-			`{"user_id":42,"xp":90,"total_answers":8,"correct_answers":6,"unique_solved":3,"active_days":4,"current_streak":2,"max_streak":4,"current_correct_streak":1,"best_correct_streak":5,"last_solved_on":"2026-11-09"}`,
+			`{"user_id":42,"xp":90,"accuracy_percent":57.14,"unique_solved":3,"active_days":4,"current_streak":2,"max_streak":4,"current_correct_streak":1,"best_correct_streak":5,"last_solved_on":"2026-11-09"}`,
+		},
+		{
+			"stats", statspb.Stats_GetStats_FullMethodName, &statspb.GetStatsReply{UserId: 42},
+			`{"user_id":42,"xp":0,"accuracy_percent":0,"unique_solved":0,"active_days":0,"current_streak":0,"max_streak":0,"current_correct_streak":0,"best_correct_streak":0,"last_solved_on":null}`,
 		},
 		{"xp", statspb.Stats_GetXP_FullMethodName, &statspb.GetXPReply{Xp: 90}, `{"xp":90}`},
 		{"streak", statspb.Stats_GetCurrentStreak_FullMethodName, &statspb.GetCurrentStreakReply{CurrentStreak: 2}, `{"current_streak":2}`},

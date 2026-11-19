@@ -33,6 +33,7 @@ type UserStatsDTO struct {
 	XP                   int64      `json:"xp"`
 	TotalAnswers         int64      `json:"total_answers"`
 	CorrectAnswers       int64      `json:"correct_answers"`
+	AccuracyPercent      float64    `json:"accuracy_percent"`
 	UniqueSolved         int64      `json:"unique_solved"`
 	ActiveDays           int        `json:"active_days"`
 	CurrentStreak        int        `json:"current_streak"`

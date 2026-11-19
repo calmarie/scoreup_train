@@ -79,6 +79,7 @@ type GetStatsReply struct {
 	CurrentCorrectStreak int64                  `protobuf:"varint,9,opt,name=current_correct_streak,json=currentCorrectStreak,proto3" json:"current_correct_streak,omitempty"`
 	BestCorrectStreak    int64                  `protobuf:"varint,10,opt,name=best_correct_streak,json=bestCorrectStreak,proto3" json:"best_correct_streak,omitempty"`
 	LastSolvedOn         *date.Date             `protobuf:"bytes,11,opt,name=last_solved_on,json=lastSolvedOn,proto3" json:"last_solved_on,omitempty"` // UTC calendar date. Unset until the first solve.
+	AccuracyPercent      float64                `protobuf:"fixed64,12,opt,name=accuracy_percent,json=accuracyPercent,proto3" json:"accuracy_percent,omitempty"`
 	unknownFields        protoimpl.UnknownFields
 	sizeCache            protoimpl.SizeCache
 }
@@ -188,6 +189,13 @@ func (x *GetStatsReply) GetLastSolvedOn() *date.Date {
 		return x.LastSolvedOn
 	}
 	return nil
+}
+
+func (x *GetStatsReply) GetAccuracyPercent() float64 {
+	if x != nil {
+		return x.AccuracyPercent
+	}
+	return 0
 }
 
 type GetXPReply struct {
@@ -328,7 +336,7 @@ const file_backend_proto_stats_stats_proto_rawDesc = "" +
 	"\n" +
 	"\x1fbackend/proto/stats/stats.proto\x12\x05stats\x1a\x16google/type/date.proto\"+\n" +
 	"\x10UserStatsRequest\x12\x17\n" +
-	"\auser_id\x18\x01 \x01(\x03R\x06userId\"\xb1\x03\n" +
+	"\auser_id\x18\x01 \x01(\x03R\x06userId\"\xdc\x03\n" +
 	"\rGetStatsReply\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\x03R\x06userId\x12\x0e\n" +
 	"\x02xp\x18\x02 \x01(\x03R\x02xp\x12#\n" +
@@ -343,7 +351,8 @@ const file_backend_proto_stats_stats_proto_rawDesc = "" +
 	"\x16current_correct_streak\x18\t \x01(\x03R\x14currentCorrectStreak\x12.\n" +
 	"\x13best_correct_streak\x18\n" +
 	" \x01(\x03R\x11bestCorrectStreak\x127\n" +
-	"\x0elast_solved_on\x18\v \x01(\v2\x11.google.type.DateR\flastSolvedOn\"\x1c\n" +
+	"\x0elast_solved_on\x18\v \x01(\v2\x11.google.type.DateR\flastSolvedOn\x12)\n" +
+	"\x10accuracy_percent\x18\f \x01(\x01R\x0faccuracyPercent\"\x1c\n" +
 	"\n" +
 	"GetXPReply\x12\x0e\n" +
 	"\x02xp\x18\x01 \x01(\x03R\x02xp\">\n" +

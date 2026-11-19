@@ -3,8 +3,7 @@ package stats_handler
 type Stats struct {
 	UserID               int64   `json:"user_id"`
 	XP                   int64   `json:"xp"`
-	TotalAnswers         int64   `json:"total_answers"`
-	CorrectAnswers       int64   `json:"correct_answers"`
+	AccuracyPercent      float64 `json:"accuracy_percent"`
 	UniqueSolved         int64   `json:"unique_solved"`
 	ActiveDays           int32   `json:"active_days"`
 	CurrentStreak        int64   `json:"current_streak"`

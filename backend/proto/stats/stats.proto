@@ -29,6 +29,7 @@ message GetStatsReply {
     int64 current_correct_streak = 9;
     int64 best_correct_streak = 10;
     google.type.Date last_solved_on = 11; // UTC calendar date. Unset until the first solve.
+    double accuracy_percent = 12;
 }
 
 message GetXPReply {
