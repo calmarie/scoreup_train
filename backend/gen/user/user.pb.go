@@ -117,7 +117,6 @@ type UserReply struct {
 	Id            int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
 	TelegramId    int64                  `protobuf:"varint,2,opt,name=telegram_id,json=telegramId,proto3" json:"telegram_id,omitempty"`
 	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	XpTotal       int32                  `protobuf:"varint,4,opt,name=xp_total,json=xpTotal,proto3" json:"xp_total,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -173,13 +172,6 @@ func (x *UserReply) GetCreatedAt() *timestamppb.Timestamp {
 	return nil
 }
 
-func (x *UserReply) GetXpTotal() int32 {
-	if x != nil {
-		return x.XpTotal
-	}
-	return 0
-}
-
 var File_backend_proto_user_user_proto protoreflect.FileDescriptor
 
 const file_backend_proto_user_user_proto_rawDesc = "" +
@@ -190,14 +182,13 @@ const file_backend_proto_user_user_proto_rawDesc = "" +
 	"telegramId\"=\n" +
 	"\x1aGetUserByTelegramIDRequest\x12\x1f\n" +
 	"\vtelegram_id\x18\x01 \x01(\x03R\n" +
-	"telegramId\"\x92\x01\n" +
+	"telegramId\"\x87\x01\n" +
 	"\tUserReply\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x1f\n" +
 	"\vtelegram_id\x18\x02 \x01(\x03R\n" +
 	"telegramId\x129\n" +
 	"\n" +
-	"created_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x12\x19\n" +
-	"\bxp_total\x18\x04 \x01(\x05R\axpTotal2\x88\x01\n" +
+	"created_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAtJ\x04\b\x04\x10\x05R\bxp_total2\x88\x01\n" +
 	"\x04User\x126\n" +
 	"\n" +
 	"CreateUser\x12\x17.user.CreateUserRequest\x1a\x0f.user.UserReply\x12H\n" +

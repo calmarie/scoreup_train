@@ -8,31 +8,13 @@ import (
 	"testing"
 
 	"github.com/calmarie/scoreup_train/backend/user-service/postgres"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
 )
 
 func TestRepository_CreateUser_Success(t *testing.T) {
 	ctx := context.Background()
-	databaseURL := testDatabaseURL(t)
-
-	// A single connection keeps the temporary table available to the repository.
-	db, err := postgres.Connect(ctx, databaseURL+"&pool_max_conns=1")
-	if err != nil {
-		t.Fatalf("connect to postgres: %v", err)
-	}
-	defer db.Close()
-
-	migration, err := os.ReadFile("../../postgres/migrations/000001_init_schema.up.sql")
-	if err != nil {
-		t.Fatalf("read users migration: %v", err)
-	}
-
-	// The temporary table uses the migration schema and disappears on disconnect.
-	query := strings.Replace(string(migration), "CREATE TABLE users", "CREATE TEMP TABLE users", 1)
-	if _, err := db.Exec(ctx, query); err != nil {
-		t.Fatalf("create temporary users table: %v", err)
-	}
-
+	db := newTestUserPool(t, ctx)
 	repo := NewRepository(db)
 	for id := int64(1); id <= 2; id++ {
 		telegramID := 100000 + id
@@ -51,9 +33,6 @@ func TestRepository_CreateUser_Success(t *testing.T) {
 
 		if user.CreatedAt.IsZero() {
 			t.Error("created_at must contain the creation time")
-		}
-		if user.XPTotal != 0 {
-			t.Errorf("xp_total = %d, want 0", user.XPTotal)
 		}
 	}
 
@@ -74,29 +53,13 @@ func TestRepository_CreateUser_Success(t *testing.T) {
 
 func TestRepository_GetUserByTelegramID(t *testing.T) {
 	ctx := context.Background()
-	databaseURL := testDatabaseURL(t)
-
-	db, err := postgres.Connect(ctx, databaseURL+"&pool_max_conns=1")
-	if err != nil {
-		t.Fatalf("connect to postgres: %v", err)
-	}
-	defer db.Close()
-
-	migration, err := os.ReadFile("../../postgres/migrations/000001_init_schema.up.sql")
-	if err != nil {
-		t.Fatalf("read users migration: %v", err)
-	}
-
-	query := strings.Replace(string(migration), "CREATE TABLE users", "CREATE TEMP TABLE users", 1)
-	if _, err := db.Exec(ctx, query); err != nil {
-		t.Fatalf("create temporary users table: %v", err)
-	}
+	db := newTestUserPool(t, ctx)
 
 	const telegramID int64 = 123456789
 	var wantID int64
 	if err := db.QueryRow(ctx, `
-		INSERT INTO users (telegram_id, xp_total)
-		VALUES ($1, 150)
+		INSERT INTO users (telegram_id)
+		VALUES ($1)
 		RETURNING id;`, telegramID).Scan(&wantID); err != nil {
 		t.Fatalf("insert user: %v", err)
 	}
@@ -116,14 +79,33 @@ func TestRepository_GetUserByTelegramID(t *testing.T) {
 	if user.CreatedAt.IsZero() {
 		t.Error("created_at must contain the creation time")
 	}
-	if user.XPTotal != 150 {
-		t.Errorf("xp_total = %d, want 150", user.XPTotal)
-	}
 
 	_, err = repo.GetUserByTelegramID(ctx, telegramID+1)
 	if !errors.Is(err, ErrUserNotFound) {
 		t.Errorf("error = %v, want %v", err, ErrUserNotFound)
 	}
+}
+
+func newTestUserPool(t *testing.T, ctx context.Context) *pgxpool.Pool {
+	t.Helper()
+	// Keep the temporary users table available on a single connection.
+	db, err := postgres.Connect(ctx, testDatabaseURL(t)+"&pool_max_conns=1")
+	if err != nil {
+		t.Fatalf("connect to postgres: %v", err)
+	}
+	t.Cleanup(db.Close)
+
+	for _, name := range []string{"000001_init_schema.up.sql", "000004_remove_user_xp_total.up.sql"} {
+		migration, err := os.ReadFile("../../postgres/migrations/" + name)
+		if err != nil {
+			t.Fatalf("read %s: %v", name, err)
+		}
+		sql := strings.Replace(string(migration), "CREATE TABLE users", "CREATE TEMP TABLE users", 1)
+		if _, err := db.Exec(ctx, sql); err != nil {
+			t.Fatalf("apply %s to test users table: %v", name, err)
+		}
+	}
+	return db
 }
 
 func testDatabaseURL(t *testing.T) string {

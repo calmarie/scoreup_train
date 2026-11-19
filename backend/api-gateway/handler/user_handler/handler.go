@@ -48,7 +48,6 @@ func (h *Handler) getUserByTelegramID(w http.ResponseWriter, r *http.Request) {
 		ID:         reply.Id,
 		TelegramID: reply.TelegramId,
 		CreatedAt:  reply.CreatedAt.AsTime(),
-		XPTotal:    reply.XpTotal,
 	}
 
 	h.writeJSON(w, http.StatusOK, user)
@@ -79,7 +78,6 @@ func (h *Handler) createUser(w http.ResponseWriter, r *http.Request) {
 		ID:         reply.Id,
 		TelegramID: reply.TelegramId,
 		CreatedAt:  reply.CreatedAt.AsTime(),
-		XPTotal:    reply.XpTotal,
 	}
 
 	h.writeJSON(w, http.StatusCreated, user)

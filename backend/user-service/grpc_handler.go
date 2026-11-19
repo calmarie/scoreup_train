@@ -25,7 +25,6 @@ func (s *userGRPCserver) CreateUser(
 		Id:         user.ID,
 		TelegramId: user.TelegramID,
 		CreatedAt:  timestamppb.New(user.CreatedAt),
-		XpTotal:    user.XPTotal,
 	}, nil
 
 }
@@ -44,7 +43,6 @@ func (s *userGRPCserver) GetUserByTelegramID(
 		Id:         user.ID,
 		TelegramId: user.TelegramID,
 		CreatedAt:  timestamppb.New(user.CreatedAt),
-		XpTotal:    user.XPTotal,
 	}, nil
 
 }

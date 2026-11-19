@@ -44,6 +44,9 @@ func TestCreateUserReturnsCreatedUser(t *testing.T) {
 	if recorder.Code != http.StatusCreated {
 		t.Fatalf("status = %d, want 201; body = %s", recorder.Code, recorder.Body.String())
 	}
+	if strings.Contains(recorder.Body.String(), `"xp_total"`) {
+		t.Errorf("response still contains xp_total: %s", recorder.Body.String())
+	}
 	var user User
 	if err := json.Unmarshal(recorder.Body.Bytes(), &user); err != nil {
 		t.Fatal(err)
@@ -100,17 +103,20 @@ func TestGetUserByTelegramIDReturnsUser(t *testing.T) {
 		if req.TelegramId != 123 {
 			t.Errorf("telegram ID = %d, want 123", req.TelegramId)
 		}
-		return &pb.UserReply{Id: 42, TelegramId: 123, CreatedAt: timestamppb.New(createdAt), XpTotal: 150}, nil
+		return &pb.UserReply{Id: 42, TelegramId: 123, CreatedAt: timestamppb.New(createdAt)}, nil
 	}}
 	recorder := serveGetUser(t, client, "123")
 	if recorder.Code != http.StatusOK {
 		t.Fatalf("status = %d, want 200; body = %s", recorder.Code, recorder.Body.String())
 	}
+	if strings.Contains(recorder.Body.String(), `"xp_total"`) {
+		t.Errorf("response still contains xp_total: %s", recorder.Body.String())
+	}
 	var user User
 	if err := json.Unmarshal(recorder.Body.Bytes(), &user); err != nil {
 		t.Fatal(err)
 	}
-	if user.ID != 42 || user.TelegramID != 123 || !user.CreatedAt.Equal(createdAt) || user.XPTotal != 150 {
+	if user.ID != 42 || user.TelegramID != 123 || !user.CreatedAt.Equal(createdAt) {
 		t.Errorf("user = %+v, want ID 42, TelegramID 123, CreatedAt %v", user, createdAt)
 	}
 }
