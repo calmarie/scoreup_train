@@ -1,4 +1,17 @@
 services:
+  redis:
+    image: redis:7.4-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "127.0.0.1:6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
   kafka:
     image: apache/kafka:4.1.1
     ports:
@@ -145,14 +158,18 @@ services:
       USER_POSTGRES_DB: ${USER_POSTGRES_DB:-scoreup_users}
       USER_POSTGRES_HOST: user-postgres
       USER_POSTGRES_PORT: "5432"
+      REDIS_URL: redis:6379
     volumes:
       - ./certs/user.crt:/app/certs/user.crt:ro
       - ./certs/user.key:/app/certs/user.key:ro
+      - ./certs/private.pem:/app/certs/private.pem:ro
     ports:
       - "${USER_GRPC_PORT:-50053}:50053"
     depends_on:
       migrate-user:
         condition: service_completed_successfully
+      redis:
+        condition: service_healthy
 
   training-service:
     build:
@@ -254,6 +271,7 @@ services:
       - up
 
 volumes:
+  redis-data:
   kafka-data:
   user-pg-data:
   training-pg-local-data:

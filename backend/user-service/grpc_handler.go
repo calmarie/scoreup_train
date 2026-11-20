@@ -14,17 +14,26 @@ import (
 func (s *userGRPCserver) CreateUser(
 	ctx context.Context,
 	req *pb.CreateUserRequest,
-) (*pb.UserReply, error) {
+) (*pb.AuthReply, error) {
+	if req.GetTelegramId() <= 0 {
+		return nil, status.Error(codes.InvalidArgument, "invalid telegram id")
+	}
 
-	user, err := s.usersService.CreateUser(ctx, req.TelegramId)
+	result, err := s.usersService.CreateUser(ctx, req.TelegramId)
 	if err != nil {
 		return nil, toGRPCError(err)
 	}
 
-	return &pb.UserReply{
-		Id:         user.ID,
-		TelegramId: user.TelegramID,
-		CreatedAt:  timestamppb.New(user.CreatedAt),
+	return &pb.AuthReply{
+		User: &pb.UserReply{
+			Id:         result.User.ID,
+			TelegramId: result.User.TelegramID,
+			CreatedAt:  timestamppb.New(result.User.CreatedAt),
+		},
+		AccessToken:  result.Session.AccessToken,
+		RefreshToken: result.Session.RefreshToken,
+		ExpiresIn:    result.Session.ExpiresIn,
+		Created:      result.Created,
 	}, nil
 
 }
@@ -45,6 +54,21 @@ func (s *userGRPCserver) GetUserByTelegramID(
 		CreatedAt:  timestamppb.New(user.CreatedAt),
 	}, nil
 
+}
+
+func (s *userGRPCserver) RefreshAccess(ctx context.Context, req *pb.RefreshAccessRequest) (*pb.RefreshAccessReply, error) {
+	if req.GetTelegramId() <= 0 || req.GetRefreshToken() == "" {
+		return nil, status.Error(codes.InvalidArgument, "invalid refresh request")
+	}
+	session, err := s.usersService.RefreshAccess(ctx, req.GetRefreshToken(), req.GetTelegramId())
+	if err != nil {
+		return nil, toGRPCError(err)
+	}
+	return &pb.RefreshAccessReply{
+		AccessToken:  session.AccessToken,
+		RefreshToken: session.RefreshToken,
+		ExpiresIn:    session.ExpiresIn,
+	}, nil
 }
 
 func toGRPCError(err error) error {

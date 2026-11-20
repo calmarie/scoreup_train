@@ -21,8 +21,36 @@ func NewHandler(client pb.UserClient, logger *slog.Logger) *Handler {
 }
 
 func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
-	mux.HandleFunc("POST /api/v1/users/telegram/{telegramID}", h.createUser)
+	mux.HandleFunc("POST /api/v1/users/auth/register/{telegramID}", h.createUser)
+	mux.HandleFunc("POST /api/v1/users/auth/refresh/{telegramID}", h.refreshAccess)
 	mux.HandleFunc("GET /api/v1/users/telegram/{telegramID}", h.getUserByTelegramID)
+}
+
+func (h *Handler) refreshAccess(w http.ResponseWriter, r *http.Request) {
+	telegramID, err := strconv.ParseInt(r.PathValue("telegramID"), 10, 64)
+	if err != nil || telegramID <= 0 {
+		h.handleServiceError(w, r, ErrInvalidTelegramID, ErrGetUser)
+		return
+	}
+
+	var body struct {
+		RefreshToken string `json:"refresh_token"`
+	}
+	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 1<<20)).Decode(&body); err != nil || body.RefreshToken == "" {
+		h.writeError(w, http.StatusBadRequest, "invalid refresh token")
+		return
+	}
+
+	reply, err := h.client.RefreshAccess(r.Context(), &pb.RefreshAccessRequest{TelegramId: telegramID, RefreshToken: body.RefreshToken})
+	if err != nil {
+		h.handleServiceError(w, r, decodeGRPCError(err), errors.New("refresh token error"))
+		return
+	}
+	h.writeJSON(w, http.StatusOK, struct {
+		AccessToken  string `json:"access_token"`
+		RefreshToken string `json:"refresh_token"`
+		ExpiresIn    int64  `json:"expires_in"`
+	}{reply.GetAccessToken(), reply.GetRefreshToken(), reply.GetExpiresIn()})
 }
 
 func (h *Handler) getUserByTelegramID(w http.ResponseWriter, r *http.Request) {
@@ -54,7 +82,6 @@ func (h *Handler) getUserByTelegramID(w http.ResponseWriter, r *http.Request) {
 
 }
 
-// createUser reads the Telegram ID from the URL and returns HTTP 409 if it is already registered.
 func (h *Handler) createUser(w http.ResponseWriter, r *http.Request) {
 
 	telegramID, err := strconv.ParseInt(r.PathValue("telegramID"), 10, 64)
@@ -74,13 +101,24 @@ func (h *Handler) createUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user := User{
-		ID:         reply.Id,
-		TelegramID: reply.TelegramId,
-		CreatedAt:  reply.CreatedAt.AsTime(),
+	if reply == nil || reply.User == nil || reply.User.CreatedAt == nil {
+		h.handleServiceError(w, r, ErrCreateUser, ErrCreateUser)
+		return
 	}
-
-	h.writeJSON(w, http.StatusCreated, user)
+	statusCode := http.StatusOK
+	if reply.Created {
+		statusCode = http.StatusCreated
+	}
+	h.writeJSON(w, statusCode, CreateUserResponse{
+		User: User{
+			ID:         reply.User.Id,
+			TelegramID: reply.User.TelegramId,
+			CreatedAt:  reply.User.CreatedAt.AsTime(),
+		},
+		AccessToken:  reply.AccessToken,
+		RefreshToken: reply.RefreshToken,
+		ExpiresIn:    reply.ExpiresIn,
+	})
 
 }
 

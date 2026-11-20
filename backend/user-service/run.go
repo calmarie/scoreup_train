@@ -10,6 +10,9 @@ import (
 	"syscall"
 
 	pb "github.com/calmarie/scoreup_train/backend/gen/user"
+	"github.com/calmarie/scoreup_train/backend/user-service/internal/auth"
+	"github.com/calmarie/scoreup_train/backend/user-service/internal/auth/access"
+	"github.com/calmarie/scoreup_train/backend/user-service/internal/auth/refresh"
 	"github.com/calmarie/scoreup_train/backend/user-service/internal/users"
 	"github.com/calmarie/scoreup_train/backend/user-service/postgres"
 	"google.golang.org/grpc"
@@ -23,7 +26,6 @@ type userGRPCserver struct {
 
 // run drains in-flight RPCs before closing the database pool on shutdown.
 func run(logger *slog.Logger) error {
-
 	ctx, stop := signal.NotifyContext(
 		context.Background(),
 		os.Interrupt,
@@ -48,7 +50,27 @@ func run(logger *slog.Logger) error {
 	}
 	defer db.Close()
 
-	usersService := users.NewService(users.NewRepository(db))
+	redisAddr := os.Getenv("REDIS_URL")
+	if redisAddr == "" {
+		return fmt.Errorf("REDIS_URL is required")
+	}
+	rdb := refresh.New()
+	defer rdb.Close()
+	if err := refresh.CheckConn(ctx, rdb); err != nil {
+		return err
+	}
+
+	privateKeyPEM, err := os.ReadFile("certs/private.pem")
+	if err != nil {
+		return fmt.Errorf("read JWT private key: %w", err)
+	}
+	signer, err := access.NewSigner(privateKeyPEM)
+	if err != nil {
+		return err
+	}
+
+	issuer := auth.NewIssuer(signer, refresh.NewRedisStore(rdb))
+	usersService := users.NewService(users.NewRepository(db), issuer)
 	srv := &userGRPCserver{usersService: usersService}
 
 	creds, err := credentials.NewServerTLSFromFile(

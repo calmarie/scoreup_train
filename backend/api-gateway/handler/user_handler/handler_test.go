@@ -21,24 +21,24 @@ import (
 type testUserClient struct {
 	pb.UserClient
 	get    func(context.Context, *pb.GetUserByTelegramIDRequest) (*pb.UserReply, error)
-	create func(context.Context, *pb.CreateUserRequest) (*pb.UserReply, error)
+	create func(context.Context, *pb.CreateUserRequest) (*pb.AuthReply, error)
 }
 
 func (c testUserClient) GetUserByTelegramID(ctx context.Context, req *pb.GetUserByTelegramIDRequest, _ ...grpc.CallOption) (*pb.UserReply, error) {
 	return c.get(ctx, req)
 }
 
-func (c testUserClient) CreateUser(ctx context.Context, req *pb.CreateUserRequest, _ ...grpc.CallOption) (*pb.UserReply, error) {
+func (c testUserClient) CreateUser(ctx context.Context, req *pb.CreateUserRequest, _ ...grpc.CallOption) (*pb.AuthReply, error) {
 	return c.create(ctx, req)
 }
 
 func TestCreateUserReturnsCreatedUser(t *testing.T) {
 	createdAt := time.Date(2026, 1, 2, 3, 4, 5, 0, time.UTC)
-	client := testUserClient{create: func(_ context.Context, req *pb.CreateUserRequest) (*pb.UserReply, error) {
+	client := testUserClient{create: func(_ context.Context, req *pb.CreateUserRequest) (*pb.AuthReply, error) {
 		if req.TelegramId != 123 {
 			t.Errorf("telegram ID = %d, want 123", req.TelegramId)
 		}
-		return &pb.UserReply{Id: 42, TelegramId: 123, CreatedAt: timestamppb.New(createdAt)}, nil
+		return &pb.AuthReply{User: &pb.UserReply{Id: 42, TelegramId: 123, CreatedAt: timestamppb.New(createdAt)}, AccessToken: "access", RefreshToken: "refresh", ExpiresIn: 900, Created: true}, nil
 	}}
 	recorder := serveUserRoute(t, client, http.MethodPost, "123")
 	if recorder.Code != http.StatusCreated {
@@ -47,17 +47,32 @@ func TestCreateUserReturnsCreatedUser(t *testing.T) {
 	if strings.Contains(recorder.Body.String(), `"xp_total"`) {
 		t.Errorf("response still contains xp_total: %s", recorder.Body.String())
 	}
-	var user User
-	if err := json.Unmarshal(recorder.Body.Bytes(), &user); err != nil {
+	var response struct {
+		User         User   `json:"user"`
+		AccessToken  string `json:"access_token"`
+		RefreshToken string `json:"refresh_token"`
+		ExpiresIn    int64  `json:"expires_in"`
+	}
+	if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
 		t.Fatal(err)
 	}
-	if user.ID != 42 || user.TelegramID != 123 || !user.CreatedAt.Equal(createdAt) {
-		t.Errorf("user = %+v, want ID 42, TelegramID 123, CreatedAt %v", user, createdAt)
+	if response.User.ID != 42 || response.User.TelegramID != 123 || !response.User.CreatedAt.Equal(createdAt) || response.AccessToken != "access" || response.RefreshToken != "refresh" || response.ExpiresIn != 900 {
+		t.Errorf("response = %+v", response)
+	}
+}
+
+func TestCreateUserReturnsOKForExistingUser(t *testing.T) {
+	client := testUserClient{create: func(context.Context, *pb.CreateUserRequest) (*pb.AuthReply, error) {
+		return &pb.AuthReply{User: &pb.UserReply{Id: 42, TelegramId: 123, CreatedAt: timestamppb.Now()}, AccessToken: "access", RefreshToken: "refresh", ExpiresIn: 900}, nil
+	}}
+	recorder := serveUserRoute(t, client, http.MethodPost, "123")
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200", recorder.Code)
 	}
 }
 
 func TestCreateUserRejectsInvalidTelegramID(t *testing.T) {
-	client := testUserClient{create: func(context.Context, *pb.CreateUserRequest) (*pb.UserReply, error) {
+	client := testUserClient{create: func(context.Context, *pb.CreateUserRequest) (*pb.AuthReply, error) {
 		t.Fatal("gRPC client called for invalid telegram ID")
 		return nil, nil
 	}}
@@ -83,7 +98,7 @@ func TestCreateUserMapsGRPCErrors(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			client := testUserClient{create: func(context.Context, *pb.CreateUserRequest) (*pb.UserReply, error) {
+			client := testUserClient{create: func(context.Context, *pb.CreateUserRequest) (*pb.AuthReply, error) {
 				return nil, status.Error(tt.code, "private upstream detail")
 			}}
 			recorder := serveUserRoute(t, client, http.MethodPost, "123")

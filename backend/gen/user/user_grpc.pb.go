@@ -23,14 +23,16 @@ const _ = grpc.SupportPackageIsVersion9
 const (
 	User_CreateUser_FullMethodName          = "/user.User/CreateUser"
 	User_GetUserByTelegramID_FullMethodName = "/user.User/GetUserByTelegramID"
+	User_RefreshAccess_FullMethodName       = "/user.User/RefreshAccess"
 )
 
 // UserClient is the client API for User service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type UserClient interface {
-	CreateUser(ctx context.Context, in *CreateUserRequest, opts ...grpc.CallOption) (*UserReply, error)
+	CreateUser(ctx context.Context, in *CreateUserRequest, opts ...grpc.CallOption) (*AuthReply, error)
 	GetUserByTelegramID(ctx context.Context, in *GetUserByTelegramIDRequest, opts ...grpc.CallOption) (*UserReply, error)
+	RefreshAccess(ctx context.Context, in *RefreshAccessRequest, opts ...grpc.CallOption) (*RefreshAccessReply, error)
 }
 
 type userClient struct {
@@ -41,9 +43,9 @@ func NewUserClient(cc grpc.ClientConnInterface) UserClient {
 	return &userClient{cc}
 }
 
-func (c *userClient) CreateUser(ctx context.Context, in *CreateUserRequest, opts ...grpc.CallOption) (*UserReply, error) {
+func (c *userClient) CreateUser(ctx context.Context, in *CreateUserRequest, opts ...grpc.CallOption) (*AuthReply, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(UserReply)
+	out := new(AuthReply)
 	err := c.cc.Invoke(ctx, User_CreateUser_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -61,12 +63,23 @@ func (c *userClient) GetUserByTelegramID(ctx context.Context, in *GetUserByTeleg
 	return out, nil
 }
 
+func (c *userClient) RefreshAccess(ctx context.Context, in *RefreshAccessRequest, opts ...grpc.CallOption) (*RefreshAccessReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RefreshAccessReply)
+	err := c.cc.Invoke(ctx, User_RefreshAccess_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // UserServer is the server API for User service.
 // All implementations must embed UnimplementedUserServer
 // for forward compatibility.
 type UserServer interface {
-	CreateUser(context.Context, *CreateUserRequest) (*UserReply, error)
+	CreateUser(context.Context, *CreateUserRequest) (*AuthReply, error)
 	GetUserByTelegramID(context.Context, *GetUserByTelegramIDRequest) (*UserReply, error)
+	RefreshAccess(context.Context, *RefreshAccessRequest) (*RefreshAccessReply, error)
 	mustEmbedUnimplementedUserServer()
 }
 
@@ -77,11 +90,14 @@ type UserServer interface {
 // pointer dereference when methods are called.
 type UnimplementedUserServer struct{}
 
-func (UnimplementedUserServer) CreateUser(context.Context, *CreateUserRequest) (*UserReply, error) {
+func (UnimplementedUserServer) CreateUser(context.Context, *CreateUserRequest) (*AuthReply, error) {
 	return nil, status.Error(codes.Unimplemented, "method CreateUser not implemented")
 }
 func (UnimplementedUserServer) GetUserByTelegramID(context.Context, *GetUserByTelegramIDRequest) (*UserReply, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetUserByTelegramID not implemented")
+}
+func (UnimplementedUserServer) RefreshAccess(context.Context, *RefreshAccessRequest) (*RefreshAccessReply, error) {
+	return nil, status.Error(codes.Unimplemented, "method RefreshAccess not implemented")
 }
 func (UnimplementedUserServer) mustEmbedUnimplementedUserServer() {}
 func (UnimplementedUserServer) testEmbeddedByValue()              {}
@@ -140,6 +156,24 @@ func _User_GetUserByTelegramID_Handler(srv interface{}, ctx context.Context, dec
 	return interceptor(ctx, in, info, handler)
 }
 
+func _User_RefreshAccess_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RefreshAccessRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServer).RefreshAccess(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: User_RefreshAccess_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServer).RefreshAccess(ctx, req.(*RefreshAccessRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // User_ServiceDesc is the grpc.ServiceDesc for User service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -154,6 +188,10 @@ var User_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetUserByTelegramID",
 			Handler:    _User_GetUserByTelegramID_Handler,
+		},
+		{
+			MethodName: "RefreshAccess",
+			Handler:    _User_RefreshAccess_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

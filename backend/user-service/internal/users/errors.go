@@ -20,26 +20,13 @@ var (
 )
 
 func createUserError(err error) error {
-	if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
-		return fmt.Errorf("create user: %w", err)
-	}
-
 	var postgresErr *pgconn.PgError
 	if errors.As(err, &postgresErr) {
 		if postgresErr.Code == "23505" {
 			return fmt.Errorf("create user: %w: %w", ErrUserAlreadyExists, err)
 		}
-		if postgresUnavailable(postgresErr.Code) {
-			return fmt.Errorf("create user: %w: %w", ErrDatabaseUnavailable, err)
-		}
 	}
-
-	var networkErr net.Error
-	if errors.As(err, &networkErr) {
-		return fmt.Errorf("create user: %w: %w", ErrDatabaseUnavailable, err)
-	}
-
-	return fmt.Errorf("create user: %w: %w", ErrCreateUser, err)
+	return databaseError("create user", ErrCreateUser, err)
 }
 
 func getUserError(err error) error {
@@ -47,21 +34,19 @@ func getUserError(err error) error {
 		return fmt.Errorf("get user by telegram id: %w", ErrUserNotFound)
 	}
 
+	return databaseError("get user by telegram id", ErrGetUser, err)
+}
+
+func databaseError(operation string, fallback, err error) error {
 	if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
-		return fmt.Errorf("get user by telegram id: %w", err)
+		return fmt.Errorf("%s: %w", operation, err)
 	}
-
 	var postgresErr *pgconn.PgError
-	if errors.As(err, &postgresErr) && postgresUnavailable(postgresErr.Code) {
-		return fmt.Errorf("get user by telegram id: %w: %w", ErrDatabaseUnavailable, err)
-	}
-
 	var networkErr net.Error
-	if errors.As(err, &networkErr) {
-		return fmt.Errorf("get user by telegram id: %w: %w", ErrDatabaseUnavailable, err)
+	if (errors.As(err, &postgresErr) && postgresUnavailable(postgresErr.Code)) || errors.As(err, &networkErr) {
+		return fmt.Errorf("%s: %w: %w", operation, ErrDatabaseUnavailable, err)
 	}
-
-	return fmt.Errorf("get user by telegram id: %w: %w", ErrGetUser, err)
+	return fmt.Errorf("%s: %w: %w", operation, fallback, err)
 }
 
 // postgresUnavailable recognizes SQLSTATE codes for connection failures, resource shortages, and server shutdown or startup.
