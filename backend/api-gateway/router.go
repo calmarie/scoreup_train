@@ -7,6 +7,7 @@ import (
 	"github.com/calmarie/scoreup_train/backend/api-gateway/handler/stats_handler"
 	training_handler "github.com/calmarie/scoreup_train/backend/api-gateway/handler/trainging_handler"
 	"github.com/calmarie/scoreup_train/backend/api-gateway/handler/user_handler"
+	"github.com/calmarie/scoreup_train/backend/api-gateway/middleware"
 	statspb "github.com/calmarie/scoreup_train/backend/gen/stats"
 	trainingpb "github.com/calmarie/scoreup_train/backend/gen/training"
 	userpb "github.com/calmarie/scoreup_train/backend/gen/user"
@@ -16,6 +17,7 @@ func newRouter(
 	userClient userpb.UserClient,
 	trainingClient trainingpb.TrainingClient,
 	statsClient statspb.StatsClient,
+	verifier *middleware.Verifier,
 	logger *slog.Logger,
 ) *http.ServeMux {
 	mux := http.NewServeMux()
@@ -27,11 +29,18 @@ func newRouter(
 	userHandler := user_handler.NewHandler(userClient, logger)
 	userHandler.RegisterRoutes(mux)
 
-	trainingHandler := training_handler.NewHandler(trainingClient, userClient, logger)
-	trainingHandler.RegisterRoutes(mux)
+	trainingHandler := training_handler.NewHandler(trainingClient, logger)
+	protectedMux := http.NewServeMux()
+	trainingHandler.RegisterRoutes(protectedMux)
 
-	statsHandler := stats_handler.NewHandler(userClient, statsClient, logger)
-	statsHandler.RegisterRoutes(mux)
+	statsHandler := stats_handler.NewHandler(statsClient, logger)
+	statsHandler.RegisterRoutes(protectedMux)
+
+	auth := middleware.New(verifier)
+	protected := auth.AuthMiddleware(protectedMux)
+	mux.Handle("/api/v1/question", protected)
+	mux.Handle("/api/v1/question/", protected)
+	mux.Handle("/api/v1/stats/", protected)
 
 	return mux
 }

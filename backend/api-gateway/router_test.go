@@ -8,10 +8,10 @@ import (
 )
 
 func TestRouterRegistersStatsXP(t *testing.T) {
-	router := newRouter(nil, nil, nil, slog.New(slog.DiscardHandler))
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/stats/xp/123", nil)
+	router := newRouter(nil, nil, nil, nil, slog.New(slog.DiscardHandler))
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/stats/xp", nil)
 	_, pattern := router.Handler(req)
-	if pattern != "GET /api/v1/stats/xp/{telegramID}" {
+	if pattern != "/api/v1/stats/" {
 		t.Fatalf("matched pattern = %q, want the Stats XP route", pattern)
 	}
 }

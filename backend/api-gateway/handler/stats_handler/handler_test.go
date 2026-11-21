@@ -9,11 +9,8 @@ import (
 	"testing"
 
 	statspb "github.com/calmarie/scoreup_train/backend/gen/stats"
-	userpb "github.com/calmarie/scoreup_train/backend/gen/user"
 	"google.golang.org/genproto/googleapis/type/date"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -26,7 +23,7 @@ func (c testConn) Invoke(_ context.Context, method string, req, reply any, _ ...
 	return c.invoke(method, req, reply)
 }
 
-func TestStatsRoutesLookUpTelegramUser(t *testing.T) {
+func TestStatsRoutesUseContextUserID(t *testing.T) {
 	for _, tc := range []struct {
 		path   string
 		method string
@@ -51,13 +48,6 @@ func TestStatsRoutesLookUpTelegramUser(t *testing.T) {
 		{"correctstreak", statspb.Stats_GetCurrentCorrectStreak_FullMethodName, &statspb.GetCurrentCorrectStreakReply{CurrentCorrectStreak: 1}, `{"current_correct_streak":1}`},
 	} {
 		t.Run(tc.path, func(t *testing.T) {
-			users := userpb.NewUserClient(testConn{invoke: func(method string, req, reply any) error {
-				if method != userpb.User_GetUserByTelegramID_FullMethodName || req.(*userpb.GetUserByTelegramIDRequest).TelegramId != 123 {
-					t.Fatalf("unexpected user lookup: %s %v", method, req)
-				}
-				reply.(*userpb.UserReply).Id = 42
-				return nil
-			}})
 			stats := statspb.NewStatsClient(testConn{invoke: func(method string, req, reply any) error {
 				if method != tc.method || req.(*statspb.UserStatsRequest).UserId != 42 {
 					t.Fatalf("unexpected stats call: %s %v", method, req)
@@ -66,9 +56,11 @@ func TestStatsRoutesLookUpTelegramUser(t *testing.T) {
 				return nil
 			}})
 			mux := http.NewServeMux()
-			NewHandler(users, stats, slog.New(slog.DiscardHandler)).RegisterRoutes(mux)
+			NewHandler(stats, slog.New(slog.DiscardHandler)).RegisterRoutes(mux)
 			res := httptest.NewRecorder()
-			mux.ServeHTTP(res, httptest.NewRequest(http.MethodGet, "/api/v1/stats/"+tc.path+"/123", nil))
+			req := httptest.NewRequest(http.MethodGet, "/api/v1/stats/"+tc.path, nil)
+			req = req.WithContext(context.WithValue(req.Context(), "userID", int64(42)))
+			mux.ServeHTTP(res, req)
 			if res.Code != http.StatusOK || strings.TrimSpace(res.Body.String()) != tc.want {
 				t.Fatalf("status = %d; body = %s", res.Code, res.Body.String())
 			}
@@ -76,27 +68,12 @@ func TestStatsRoutesLookUpTelegramUser(t *testing.T) {
 	}
 }
 
-func TestGetXPStopsWhenUserLookupFails(t *testing.T) {
-	for _, tc := range []struct {
-		code       codes.Code
-		wantStatus int
-		wantBody   string
-	}{
-		{codes.NotFound, http.StatusNotFound, `{"error":"user not found"}`},
-		{codes.InvalidArgument, http.StatusBadRequest, `{"error":"invalid telegram id"}`},
-	} {
-		t.Run(tc.code.String(), func(t *testing.T) {
-			users := userpb.NewUserClient(testConn{invoke: func(string, any, any) error {
-				return status.Error(tc.code, "upstream detail")
-			}})
-			mux := http.NewServeMux()
-			NewHandler(users, nil, slog.New(slog.DiscardHandler)).RegisterRoutes(mux)
-
-			res := httptest.NewRecorder()
-			mux.ServeHTTP(res, httptest.NewRequest(http.MethodGet, "/api/v1/stats/xp/123", nil))
-			if res.Code != tc.wantStatus || strings.TrimSpace(res.Body.String()) != tc.wantBody {
-				t.Fatalf("status = %d; body = %s", res.Code, res.Body.String())
-			}
-		})
+func TestGetXPRejectsMissingContextUserID(t *testing.T) {
+	mux := http.NewServeMux()
+	NewHandler(nil, slog.New(slog.DiscardHandler)).RegisterRoutes(mux)
+	res := httptest.NewRecorder()
+	mux.ServeHTTP(res, httptest.NewRequest(http.MethodGet, "/api/v1/stats/xp", nil))
+	if res.Code != http.StatusUnauthorized {
+		t.Fatalf("status = %d; body = %s", res.Code, res.Body.String())
 	}
 }

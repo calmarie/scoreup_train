@@ -20,7 +20,6 @@ type Question struct {
 }
 
 type SubmitAnswerRequest struct {
-	TelegramID int64           `json:"telegram_id"`
 	QuestionID int32           `json:"question_id"`
 	Answer     json.RawMessage `json:"answer"`
 }

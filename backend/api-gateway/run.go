@@ -8,6 +8,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/calmarie/scoreup_train/backend/api-gateway/middleware"
 	statspb "github.com/calmarie/scoreup_train/backend/gen/stats"
 	trainingpb "github.com/calmarie/scoreup_train/backend/gen/training"
 	userpb "github.com/calmarie/scoreup_train/backend/gen/user"
@@ -19,6 +20,11 @@ func run(logger *slog.Logger) error {
 	httpPort, err := requiredEnv("HTTP_PORT")
 	if err != nil {
 		return fmt.Errorf("read HTTP configuration: %w", err)
+	}
+
+	verifier, err := authVerifier()
+	if err != nil {
+		return fmt.Errorf("initialize JWT verifier: %w", err)
 	}
 
 	userClient, trainingClient, statsClient, closeConns, err := connGRPCServers()
@@ -33,6 +39,7 @@ func run(logger *slog.Logger) error {
 			userClient,
 			trainingClient,
 			statsClient,
+			verifier,
 			logger,
 		),
 		ReadHeaderTimeout: 5 * time.Second,
@@ -98,6 +105,20 @@ func connGRPCServers() (userpb.UserClient, trainingpb.TrainingClient, statspb.St
 	}
 
 	return userClient, trainingClient, statsClient, closeConns, nil
+}
+
+func authVerifier() (*middleware.Verifier, error) {
+	publicKeyPEM, err := os.ReadFile("certs/public.pem")
+	if err != nil {
+		return nil, fmt.Errorf("read JWT public key: %w", err)
+	}
+	verifier, err := middleware.NewVerifier(publicKeyPEM)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return verifier, nil
 }
 
 func serviceURL(name string) (*url.URL, error) {

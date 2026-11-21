@@ -10,19 +10,17 @@ import (
 	"net/http"
 
 	trainingpb "github.com/calmarie/scoreup_train/backend/gen/training"
-	userpb "github.com/calmarie/scoreup_train/backend/gen/user"
 )
 
 type Handler struct {
 	trainingClient trainingpb.TrainingClient
-	userClient     userpb.UserClient
 	logger         *slog.Logger
 }
 
 const maxRequestBodyBytes int64 = 1 << 20
 
-func NewHandler(trainingClient trainingpb.TrainingClient, userClient userpb.UserClient, logger *slog.Logger) *Handler {
-	return &Handler{trainingClient: trainingClient, userClient: userClient, logger: logger}
+func NewHandler(trainingClient trainingpb.TrainingClient, logger *slog.Logger) *Handler {
+	return &Handler{trainingClient: trainingClient, logger: logger}
 }
 
 func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
@@ -33,7 +31,7 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 func (h *Handler) getQuestion(w http.ResponseWriter, r *http.Request) {
 	reply, err := h.trainingClient.GetQuestion(r.Context(), &trainingpb.GetQuestionRequest{})
 	if err != nil {
-		h.handleServiceError(w, r, decodeGRPCError(err, ErrQuestionNotFound), ErrGetQuestion)
+		h.handleServiceError(w, r, decodeGRPCError(err), ErrGetQuestion)
 		return
 	}
 
@@ -54,13 +52,15 @@ func (h *Handler) getQuestion(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) saveAnswer(w http.ResponseWriter, r *http.Request) {
+	userID, ok := r.Context().Value("userID").(int64)
+	if !ok || userID <= 0 {
+		h.writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "authentication required"})
+		return
+	}
+
 	var body SubmitAnswerRequest
 	if err := decodeJSON(w, r, &body); err != nil {
 		h.handleServiceError(w, r, err, ErrSaveAnswer)
-		return
-	}
-	if body.TelegramID <= 0 {
-		h.handleServiceError(w, r, ErrInvalidTelegramID, ErrSaveAnswer)
 		return
 	}
 	if body.QuestionID <= 0 {
@@ -72,22 +72,13 @@ func (h *Handler) saveAnswer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Resolve the Telegram ID to the internal user ID required by the training service.
-	user, err := h.userClient.GetUserByTelegramID(r.Context(), &userpb.GetUserByTelegramIDRequest{
-		TelegramId: body.TelegramID,
-	})
-	if err != nil {
-		h.handleServiceError(w, r, decodeGRPCError(err, ErrUserNotFound), ErrGetUser)
-		return
-	}
-
 	reply, err := h.trainingClient.SaveAnswer(r.Context(), &trainingpb.SaveAnswerRequest{
-		UserId:     user.Id,
+		UserId:     userID,
 		QuestionId: body.QuestionID,
 		AnswerJson: body.Answer,
 	})
 	if err != nil {
-		h.handleServiceError(w, r, decodeGRPCError(err, ErrQuestionNotFound), ErrSaveAnswer)
+		h.handleServiceError(w, r, decodeGRPCError(err), ErrSaveAnswer)
 		return
 	}
 
@@ -147,14 +138,10 @@ func (h *Handler) handleServiceError(w http.ResponseWriter, r *http.Request, err
 		status, message = http.StatusBadRequest, ErrInvalidRequestBody.Error()
 	case errors.Is(err, ErrMultipleJSONValues):
 		status, message = http.StatusBadRequest, ErrMultipleJSONValues.Error()
-	case errors.Is(err, ErrInvalidTelegramID):
-		status, message = http.StatusBadRequest, ErrInvalidTelegramID.Error()
 	case errors.Is(err, ErrInvalidQuestionID):
 		status, message = http.StatusBadRequest, ErrInvalidQuestionID.Error()
 	case errors.Is(err, ErrAnswerRequired):
 		status, message = http.StatusBadRequest, ErrAnswerRequired.Error()
-	case errors.Is(err, ErrUserNotFound):
-		status, message = http.StatusNotFound, ErrUserNotFound.Error()
 	case errors.Is(err, ErrQuestionNotFound):
 		status, message = http.StatusNotFound, ErrQuestionNotFound.Error()
 	case errors.Is(err, ErrServiceUnavailable):

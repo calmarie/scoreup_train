@@ -12,7 +12,6 @@ import (
 	"time"
 
 	trainingpb "github.com/calmarie/scoreup_train/backend/gen/training"
-	userpb "github.com/calmarie/scoreup_train/backend/gen/user"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -33,15 +32,6 @@ func (c testTrainingClient) SaveAnswer(ctx context.Context, req *trainingpb.Save
 	return c.save(ctx, req)
 }
 
-type testUserClient struct {
-	userpb.UserClient
-	get func(context.Context, *userpb.GetUserByTelegramIDRequest) (*userpb.UserReply, error)
-}
-
-func (c testUserClient) GetUserByTelegramID(ctx context.Context, req *userpb.GetUserByTelegramIDRequest, _ ...grpc.CallOption) (*userpb.UserReply, error) {
-	return c.get(ctx, req)
-}
-
 func TestGetQuestionReturnsQuestionJSON(t *testing.T) {
 	client := testTrainingClient{get: func(context.Context, *trainingpb.GetQuestionRequest) (*trainingpb.GetQuestionReply, error) {
 		return &trainingpb.GetQuestionReply{
@@ -49,7 +39,7 @@ func TestGetQuestionReturnsQuestionJSON(t *testing.T) {
 			Options: []byte(`["a","b"]`), Data: []byte(`{"hint":true}`), IsActive: true,
 		}, nil
 	}}
-	recorder := serveTrainingRoute(t, client, nil, http.MethodGet, "/api/v1/question", "")
+	recorder := serveTrainingRoute(t, client, 0, http.MethodGet, "/api/v1/question", "")
 	if recorder.Code != http.StatusOK {
 		t.Fatalf("status = %d, want 200; body = %s", recorder.Code, recorder.Body.String())
 	}
@@ -78,7 +68,7 @@ func TestGetQuestionMapsGRPCErrors(t *testing.T) {
 			client := testTrainingClient{get: func(context.Context, *trainingpb.GetQuestionRequest) (*trainingpb.GetQuestionReply, error) {
 				return nil, status.Error(tt.code, "private upstream detail")
 			}}
-			recorder := serveTrainingRoute(t, client, nil, http.MethodGet, "/api/v1/question", "")
+			recorder := serveTrainingRoute(t, client, 0, http.MethodGet, "/api/v1/question", "")
 			if recorder.Code != tt.want {
 				t.Errorf("status = %d, want %d", recorder.Code, tt.want)
 			}
@@ -89,21 +79,15 @@ func TestGetQuestionMapsGRPCErrors(t *testing.T) {
 	}
 }
 
-func TestSaveAnswerResolvesUserAndReturnsResult(t *testing.T) {
+func TestSaveAnswerUsesContextUserIDAndReturnsResult(t *testing.T) {
 	createdAt := time.Date(2026, 1, 2, 3, 4, 5, 0, time.UTC)
-	userClient := testUserClient{get: func(_ context.Context, req *userpb.GetUserByTelegramIDRequest) (*userpb.UserReply, error) {
-		if req.TelegramId != 123 {
-			t.Errorf("telegram ID = %d, want 123", req.TelegramId)
-		}
-		return &userpb.UserReply{Id: 77}, nil
-	}}
 	trainingClient := testTrainingClient{save: func(_ context.Context, req *trainingpb.SaveAnswerRequest) (*trainingpb.SaveAnswerReply, error) {
 		if req.UserId != 77 || req.QuestionId != 5 || string(req.AnswerJson) != `"a"` {
 			t.Errorf("save request = %+v, want user 77, question 5, answer a", req)
 		}
 		return &trainingpb.SaveAnswerReply{Id: 88, IsCorrect: true, CreatedAt: timestamppb.New(createdAt)}, nil
 	}}
-	recorder := serveTrainingRoute(t, trainingClient, userClient, http.MethodPost, "/api/v1/question/answer", `{"telegram_id":123,"question_id":5,"answer":"a"}`)
+	recorder := serveTrainingRoute(t, trainingClient, 77, http.MethodPost, "/api/v1/question/answer", `{"question_id":5,"answer":"a"}`)
 	if recorder.Code != http.StatusCreated {
 		t.Fatalf("status = %d, want 201; body = %s", recorder.Code, recorder.Body.String())
 	}
@@ -121,52 +105,46 @@ func TestSaveAnswerRejectsInvalidBodyBeforeRPC(t *testing.T) {
 		t.Fatal("training RPC called for invalid body")
 		return nil, nil
 	}}
-	userClient := testUserClient{get: func(context.Context, *userpb.GetUserByTelegramIDRequest) (*userpb.UserReply, error) {
-		t.Fatal("user RPC called for invalid body")
-		return nil, nil
-	}}
-	for _, body := range []string{`{`, `{}`, `{"telegram_id":0,"question_id":5,"answer":"a"}`, `{"telegram_id":123,"question_id":0,"answer":"a"}`, `{"telegram_id":123,"question_id":5}`} {
-		recorder := serveTrainingRoute(t, trainingClient, userClient, http.MethodPost, "/api/v1/question/answer", body)
+	for _, body := range []string{`{`, `{}`, `{"user_id":123,"question_id":5,"answer":"a"}`, `{"question_id":0,"answer":"a"}`, `{"question_id":5}`} {
+		recorder := serveTrainingRoute(t, trainingClient, 77, http.MethodPost, "/api/v1/question/answer", body)
 		if recorder.Code != http.StatusBadRequest {
 			t.Errorf("body %q: status = %d, want 400", body, recorder.Code)
 		}
 	}
 }
 
-func TestSaveAnswerReturnsNotFoundWhenUserIsMissing(t *testing.T) {
-	userClient := testUserClient{get: func(context.Context, *userpb.GetUserByTelegramIDRequest) (*userpb.UserReply, error) {
-		return nil, status.Error(codes.NotFound, "private upstream detail")
-	}}
+func TestSaveAnswerRejectsMissingContextUserID(t *testing.T) {
 	trainingClient := testTrainingClient{save: func(context.Context, *trainingpb.SaveAnswerRequest) (*trainingpb.SaveAnswerReply, error) {
-		t.Fatal("training RPC called when user is missing")
+		t.Fatal("training RPC called without an authenticated user")
 		return nil, nil
 	}}
-	recorder := serveTrainingRoute(t, trainingClient, userClient, http.MethodPost, "/api/v1/question/answer", `{"telegram_id":123,"question_id":5,"answer":"a"}`)
-	if recorder.Code != http.StatusNotFound || !strings.Contains(recorder.Body.String(), "user not found") {
-		t.Errorf("status = %d, body = %s; want user not found", recorder.Code, recorder.Body.String())
+	recorder := serveTrainingRoute(t, trainingClient, 0, http.MethodPost, "/api/v1/question/answer", `{"question_id":5,"answer":"a"}`)
+	if recorder.Code != http.StatusUnauthorized {
+		t.Errorf("status = %d, body = %s; want 401", recorder.Code, recorder.Body.String())
 	}
 }
 
 func TestSaveAnswerReturnsNotFoundWhenQuestionIsMissing(t *testing.T) {
-	userClient := testUserClient{get: func(context.Context, *userpb.GetUserByTelegramIDRequest) (*userpb.UserReply, error) {
-		return &userpb.UserReply{Id: 77}, nil
-	}}
 	trainingClient := testTrainingClient{save: func(context.Context, *trainingpb.SaveAnswerRequest) (*trainingpb.SaveAnswerReply, error) {
 		return nil, status.Error(codes.NotFound, "private upstream detail")
 	}}
-	recorder := serveTrainingRoute(t, trainingClient, userClient, http.MethodPost, "/api/v1/question/answer", `{"telegram_id":123,"question_id":5,"answer":"a"}`)
+	recorder := serveTrainingRoute(t, trainingClient, 77, http.MethodPost, "/api/v1/question/answer", `{"question_id":5,"answer":"a"}`)
 	if recorder.Code != http.StatusNotFound || !strings.Contains(recorder.Body.String(), "question not found") {
 		t.Errorf("status = %d, body = %s; want question not found", recorder.Code, recorder.Body.String())
 	}
 }
 
-func serveTrainingRoute(t *testing.T, trainingClient trainingpb.TrainingClient, userClient userpb.UserClient, method, path, body string) *httptest.ResponseRecorder {
+func serveTrainingRoute(t *testing.T, trainingClient trainingpb.TrainingClient, userID int64, method, path, body string) *httptest.ResponseRecorder {
 	t.Helper()
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-	handler := NewHandler(trainingClient, userClient, logger)
+	handler := NewHandler(trainingClient, logger)
 	mux := http.NewServeMux()
 	handler.RegisterRoutes(mux)
 	recorder := httptest.NewRecorder()
-	mux.ServeHTTP(recorder, httptest.NewRequest(method, path, strings.NewReader(body)))
+	req := httptest.NewRequest(method, path, strings.NewReader(body))
+	if userID > 0 {
+		req = req.WithContext(context.WithValue(req.Context(), "userID", userID))
+	}
+	mux.ServeHTTP(recorder, req)
 	return recorder
 }

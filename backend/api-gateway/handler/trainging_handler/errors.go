@@ -13,19 +13,15 @@ var (
 	ErrInvalidRequestBody  = errors.New("invalid request body")
 	ErrMultipleJSONValues  = errors.New("request body must contain one JSON object")
 	ErrRequestBodyTooLarge = errors.New("request body must not exceed 1 MiB")
-	ErrInvalidTelegramID   = errors.New("invalid telegram id")
 	ErrInvalidQuestionID   = errors.New("invalid question id")
 	ErrAnswerRequired      = errors.New("answer is required")
-	ErrUserNotFound        = errors.New("user not found")
 	ErrQuestionNotFound    = errors.New("question not found")
 	ErrServiceUnavailable  = errors.New("service unavailable")
-	ErrGetUser             = errors.New("get user error")
 	ErrGetQuestion         = errors.New("get question error")
 	ErrSaveAnswer          = errors.New("save answer error")
 )
 
-// decodeGRPCError uses the caller's notFound error to distinguish a missing user from a missing question.
-func decodeGRPCError(err, notFound error) error {
+func decodeGRPCError(err error) error {
 	var mapped error
 	switch {
 	case errors.Is(err, context.Canceled):
@@ -41,7 +37,7 @@ func decodeGRPCError(err, notFound error) error {
 		case codes.InvalidArgument:
 			mapped = ErrInvalidRequestBody
 		case codes.NotFound:
-			mapped = notFound
+			mapped = ErrQuestionNotFound
 		case codes.Unavailable:
 			mapped = ErrServiceUnavailable
 		}

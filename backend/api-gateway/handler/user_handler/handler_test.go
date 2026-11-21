@@ -189,7 +189,11 @@ func serveUserRoute(t *testing.T, client pb.UserClient, method, pathID string) *
 	handler := NewHandler(client, logger)
 	mux := http.NewServeMux()
 	handler.RegisterRoutes(mux)
-	request := httptest.NewRequest(method, "/api/v1/users/telegram/"+pathID, nil)
+	path := "/api/v1/users/telegram/" + pathID
+	if method == http.MethodPost {
+		path = "/api/v1/users/auth/register/" + pathID
+	}
+	request := httptest.NewRequest(method, path, nil)
 	recorder := httptest.NewRecorder()
 	mux.ServeHTTP(recorder, request)
 	return recorder
