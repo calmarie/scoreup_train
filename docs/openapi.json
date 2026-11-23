@@ -1,0 +1,538 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "ScoreUp Train API",
+    "version": "1.0.0",
+    "description": "HTTP API for users, training, and statistics. Statistics are updated asynchronously after an answer is submitted."
+  },
+  "servers": [{ "url": "http://localhost:8080", "description": "Local API gateway" }],
+  "tags": [
+    { "name": "Health" },
+    { "name": "Users" },
+    { "name": "Training" },
+    { "name": "Statistics" }
+  ],
+  "security": [{ "BearerAuth": [] }],
+  "paths": {
+    "/health": {
+      "get": {
+        "operationId": "health",
+        "tags": ["Health"],
+        "summary": "Check gateway health",
+        "security": [],
+        "responses": {
+          "200": { "description": "The gateway is responding. The response body is empty." }
+        }
+      }
+    },
+    "/api/v1/users/auth/register/{telegramID}": {
+      "parameters": [{ "$ref": "#/components/parameters/TelegramID" }],
+      "post": {
+        "operationId": "registerUser",
+        "tags": ["Users"],
+        "summary": "Register a user or start a session",
+        "description": "For local development. This endpoint trusts the Telegram ID in the request path.",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Session for an existing user.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Registration" } } }
+          },
+          "201": {
+            "description": "New user and session.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Registration" } } }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "408": { "$ref": "#/components/responses/RequestCanceled" },
+          "500": { "$ref": "#/components/responses/InternalError" },
+          "503": { "$ref": "#/components/responses/Unavailable" },
+          "504": { "$ref": "#/components/responses/Timeout" }
+        }
+      }
+    },
+    "/api/v1/users/auth/refresh/{telegramID}": {
+      "parameters": [{ "$ref": "#/components/parameters/TelegramID" }],
+      "post": {
+        "operationId": "refreshAccess",
+        "tags": ["Users"],
+        "summary": "Refresh a session",
+        "description": "A valid refresh token is reused and a new access token is issued. If the refresh token is invalid, the endpoint looks up the user by Telegram ID and issues a new pair of tokens. Use this behavior for local development.",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/RefreshRequest" } } }
+        },
+        "responses": {
+          "200": {
+            "description": "Session tokens.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Session" } } }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "408": { "$ref": "#/components/responses/RequestCanceled" },
+          "500": { "$ref": "#/components/responses/InternalError" },
+          "503": { "$ref": "#/components/responses/Unavailable" },
+          "504": { "$ref": "#/components/responses/Timeout" }
+        }
+      }
+    },
+    "/api/v1/users/telegram/{telegramID}": {
+      "parameters": [{ "$ref": "#/components/parameters/TelegramID" }],
+      "get": {
+        "operationId": "getUserByTelegramID",
+        "tags": ["Users"],
+        "summary": "Find a user by Telegram ID",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "The requested user.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/User" } } }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "408": { "$ref": "#/components/responses/RequestCanceled" },
+          "500": { "$ref": "#/components/responses/InternalError" },
+          "503": { "$ref": "#/components/responses/Unavailable" },
+          "504": { "$ref": "#/components/responses/Timeout" }
+        }
+      }
+    },
+    "/api/v1/question": {
+      "get": {
+        "operationId": "getQuestion",
+        "tags": ["Training"],
+        "summary": "Get a random active question",
+        "responses": {
+          "200": {
+            "description": "An active question.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Question" } } }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "408": { "$ref": "#/components/responses/RequestCanceled" },
+          "500": { "$ref": "#/components/responses/InternalError" },
+          "503": { "$ref": "#/components/responses/Unavailable" },
+          "504": { "$ref": "#/components/responses/Timeout" }
+        }
+      }
+    },
+    "/api/v1/question/answer": {
+      "post": {
+        "operationId": "submitAnswer",
+        "tags": ["Training"],
+        "summary": "Submit an answer",
+        "description": "Send a single JSON object up to 1 MiB. The service compares answers byte for byte, so a JSON string and a JSON number are treated as different answers. Statistics are updated after the event is processed. If publishing to Kafka fails, the attempt may already have been saved even if the request returns 500.",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AnswerRequest" } } }
+        },
+        "responses": {
+          "201": {
+            "description": "The attempt was saved. The is_correct field indicates whether the answer was correct.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Answer" } } }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "408": { "$ref": "#/components/responses/RequestCanceled" },
+          "413": { "$ref": "#/components/responses/BodyTooLarge" },
+          "500": { "$ref": "#/components/responses/InternalError" },
+          "503": { "$ref": "#/components/responses/Unavailable" },
+          "504": { "$ref": "#/components/responses/Timeout" }
+        }
+      }
+    },
+    "/api/v1/stats/stats": {
+      "get": {
+        "operationId": "getStats",
+        "tags": ["Statistics"],
+        "summary": "Get overall statistics",
+        "responses": {
+          "200": {
+            "description": "Overall statistics for the user.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Stats" } } }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "408": { "$ref": "#/components/responses/RequestCanceled" },
+          "500": { "$ref": "#/components/responses/InternalError" },
+          "503": { "$ref": "#/components/responses/Unavailable" },
+          "504": { "$ref": "#/components/responses/Timeout" }
+        }
+      }
+    },
+    "/api/v1/stats/xp": {
+      "get": {
+        "operationId": "getXP",
+        "tags": ["Statistics"],
+        "summary": "Get total XP",
+        "responses": {
+          "200": {
+            "description": "Total XP for the user.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/XP" } } }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "408": { "$ref": "#/components/responses/RequestCanceled" },
+          "500": { "$ref": "#/components/responses/InternalError" },
+          "503": { "$ref": "#/components/responses/Unavailable" },
+          "504": { "$ref": "#/components/responses/Timeout" }
+        }
+      }
+    },
+    "/api/v1/stats/streak": {
+      "get": {
+        "operationId": "getCurrentStreak",
+        "tags": ["Statistics"],
+        "summary": "Get the current streak of days with correct answers",
+        "responses": {
+          "200": {
+            "description": "Current streak in days.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Streak" } } }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "408": { "$ref": "#/components/responses/RequestCanceled" },
+          "500": { "$ref": "#/components/responses/InternalError" },
+          "503": { "$ref": "#/components/responses/Unavailable" },
+          "504": { "$ref": "#/components/responses/Timeout" }
+        }
+      }
+    },
+    "/api/v1/stats/correctstreak": {
+      "get": {
+        "operationId": "getCurrentCorrectStreak",
+        "tags": ["Statistics"],
+        "summary": "Get the current correct answer streak",
+        "responses": {
+          "200": {
+            "description": "Number of consecutive correct answers.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CorrectStreak" } } }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "408": { "$ref": "#/components/responses/RequestCanceled" },
+          "500": { "$ref": "#/components/responses/InternalError" },
+          "503": { "$ref": "#/components/responses/Unavailable" },
+          "504": { "$ref": "#/components/responses/Timeout" }
+        }
+      }
+    },
+    "/api/v1/stats/daily/{date}": {
+      "get": {
+        "operationId": "getDailyStats",
+        "tags": ["Statistics"],
+        "summary": "Get statistics for a specific day",
+        "parameters": [{
+          "name": "date",
+          "in": "path",
+          "required": true,
+          "description": "UTC calendar date in YYYY-MM-DD format.",
+          "schema": { "type": "string", "format": "date" },
+          "example": "2026-11-23"
+        }],
+        "responses": {
+          "200": {
+            "description": "Statistics for the requested day.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/DailyStats" } } }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "408": { "$ref": "#/components/responses/RequestCanceled" },
+          "500": { "$ref": "#/components/responses/InternalError" },
+          "503": { "$ref": "#/components/responses/Unavailable" },
+          "504": { "$ref": "#/components/responses/Timeout" }
+        }
+      }
+    },
+    "/api/v1/stats/weekly": {
+      "get": {
+        "operationId": "getWeeklyStats",
+        "tags": ["Statistics"],
+        "summary": "Get statistics for the last seven days",
+        "description": "Includes today and the previous six days in UTC. Days without attempts are omitted. Entries are ordered from oldest to newest.",
+        "responses": {
+          "200": {
+            "description": "Daily entries. The days array is empty if there were no attempts during this period.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/WeeklyStats" } } }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "408": { "$ref": "#/components/responses/RequestCanceled" },
+          "500": { "$ref": "#/components/responses/InternalError" },
+          "503": { "$ref": "#/components/responses/Unavailable" },
+          "504": { "$ref": "#/components/responses/Timeout" }
+        }
+      }
+    },
+    "/api/v1/stats/topics/{topic}": {
+      "get": {
+        "operationId": "getTopicStats",
+        "tags": ["Statistics"],
+        "summary": "Get statistics for a specific topic",
+        "parameters": [{
+          "name": "topic",
+          "in": "path",
+          "required": true,
+          "description": "The exact topic name from the question's topic field.",
+          "schema": { "type": "string", "minLength": 1 },
+          "example": "binary_numbers"
+        }],
+        "responses": {
+          "200": {
+            "description": "Statistics for the requested topic.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/TopicStats" } } }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "408": { "$ref": "#/components/responses/RequestCanceled" },
+          "500": { "$ref": "#/components/responses/InternalError" },
+          "503": { "$ref": "#/components/responses/Unavailable" },
+          "504": { "$ref": "#/components/responses/Timeout" }
+        }
+      }
+    },
+    "/api/v1/stats/topics": {
+      "get": {
+        "operationId": "getAllTopicStats",
+        "tags": ["Statistics"],
+        "summary": "Get statistics for all topics",
+        "description": "Includes topics with at least one attempt, sorted by topic name.",
+        "responses": {
+          "200": {
+            "description": "Statistics grouped by topic. The topics array is empty if there have been no attempts.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AllTopicStats" } } }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "408": { "$ref": "#/components/responses/RequestCanceled" },
+          "500": { "$ref": "#/components/responses/InternalError" },
+          "503": { "$ref": "#/components/responses/Unavailable" },
+          "504": { "$ref": "#/components/responses/Timeout" }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": { "type": "http", "scheme": "bearer", "bearerFormat": "JWT" }
+    },
+    "parameters": {
+      "TelegramID": {
+        "name": "telegramID",
+        "in": "path",
+        "required": true,
+        "schema": { "type": "integer", "format": "int64", "minimum": 1 },
+        "example": 123
+      }
+    },
+    "schemas": {
+      "Error": {
+        "type": "object",
+        "required": ["error"],
+        "properties": { "error": { "type": "string" } }
+      },
+      "User": {
+        "type": "object",
+        "required": ["id", "telegram_id", "created_at"],
+        "properties": {
+          "id": { "type": "integer", "format": "int64" },
+          "telegram_id": { "type": "integer", "format": "int64" },
+          "created_at": { "type": "string", "format": "date-time" }
+        },
+        "example": { "id": 42, "telegram_id": 123, "created_at": "2026-11-23T09:30:00Z" }
+      },
+      "Session": {
+        "type": "object",
+        "required": ["access_token", "refresh_token", "expires_in"],
+        "properties": {
+          "access_token": { "type": "string", "description": "JWT for the Authorization header." },
+          "refresh_token": { "type": "string", "description": "Token used to refresh the session." },
+          "expires_in": { "type": "integer", "format": "int64", "description": "Access token lifetime in seconds.", "example": 900 }
+        },
+        "example": { "access_token": "<access_token>", "refresh_token": "<refresh_token>", "expires_in": 900 }
+      },
+      "Registration": {
+        "allOf": [
+          { "$ref": "#/components/schemas/Session" },
+          { "type": "object", "required": ["user"], "properties": { "user": { "$ref": "#/components/schemas/User" } } }
+        ],
+        "example": {
+          "user": { "id": 42, "telegram_id": 123, "created_at": "2026-11-23T09:30:00Z" },
+          "access_token": "<access_token>",
+          "refresh_token": "<refresh_token>",
+          "expires_in": 900
+        }
+      },
+      "RefreshRequest": {
+        "type": "object",
+        "required": ["refresh_token"],
+        "properties": { "refresh_token": { "type": "string", "minLength": 1 } },
+        "example": { "refresh_token": "<refresh_token>" }
+      },
+      "Question": {
+        "type": "object",
+        "required": ["id", "type", "difficulty", "topic", "skill", "text", "image_url", "options", "explanation", "data", "is_active"],
+        "properties": {
+          "id": { "type": "integer", "format": "int32" },
+          "type": { "type": "string", "enum": ["radio", "checkbox", "text", "code"] },
+          "difficulty": { "type": "integer", "minimum": 1, "maximum": 10 },
+          "topic": { "type": "string" },
+          "skill": { "type": ["string", "null"] },
+          "text": { "type": "string" },
+          "image_url": { "type": ["string", "null"] },
+          "options": { "description": "Answer options as JSON or null." },
+          "explanation": { "type": ["string", "null"] },
+          "data": { "description": "Additional question data as JSON or null." },
+          "is_active": { "type": "boolean" }
+        },
+        "example": {
+          "id": 1,
+          "type": "radio",
+          "difficulty": 1,
+          "topic": "binary_numbers",
+          "skill": null,
+          "text": "What is the decimal value of the binary number 1011?",
+          "image_url": null,
+          "options": ["9", "10", "11", "13"],
+          "explanation": null,
+          "data": null,
+          "is_active": true
+        }
+      },
+      "AnswerRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["question_id", "answer"],
+        "properties": {
+          "question_id": { "type": "integer", "format": "int32", "minimum": 1 },
+          "answer": { "description": "A JSON value in the format expected by the question." }
+        },
+        "example": { "question_id": 1, "answer": "11" }
+      },
+      "Answer": {
+        "type": "object",
+        "required": ["id", "is_correct", "created_at"],
+        "properties": {
+          "id": { "type": "integer", "format": "int64" },
+          "is_correct": { "type": "boolean" },
+          "created_at": { "type": "string", "format": "date-time" }
+        },
+        "example": { "id": 25, "is_correct": true, "created_at": "2026-11-23T09:31:00Z" }
+      },
+      "Stats": {
+        "type": "object",
+        "required": ["user_id", "xp", "accuracy_percent", "unique_solved", "active_days", "current_streak", "max_streak", "current_correct_streak", "best_correct_streak", "last_solved_on"],
+        "properties": {
+          "user_id": { "type": "integer", "format": "int64" },
+          "xp": { "type": "integer", "format": "int64" },
+          "accuracy_percent": { "type": "number", "format": "double", "minimum": 0, "maximum": 100 },
+          "unique_solved": { "type": "integer", "format": "int64" },
+          "active_days": { "type": "integer", "format": "int32" },
+          "current_streak": { "type": "integer", "format": "int64" },
+          "max_streak": { "type": "integer", "format": "int64" },
+          "current_correct_streak": { "type": "integer", "format": "int64" },
+          "best_correct_streak": { "type": "integer", "format": "int64" },
+          "last_solved_on": { "type": ["string", "null"], "format": "date", "description": "UTC date of the last correct answer. Returns null until the first correct answer." }
+        },
+        "example": { "user_id": 42, "xp": 20, "accuracy_percent": 100, "unique_solved": 1, "active_days": 1, "current_streak": 1, "max_streak": 1, "current_correct_streak": 1, "best_correct_streak": 1, "last_solved_on": "2026-11-23" }
+      },
+      "XP": {
+        "type": "object",
+        "required": ["xp"],
+        "properties": { "xp": { "type": "integer", "format": "int64" } },
+        "example": { "xp": 20 }
+      },
+      "Streak": {
+        "type": "object",
+        "required": ["current_streak"],
+        "properties": { "current_streak": { "type": "integer", "format": "int64" } },
+        "example": { "current_streak": 1 }
+      },
+      "CorrectStreak": {
+        "type": "object",
+        "required": ["current_correct_streak"],
+        "properties": { "current_correct_streak": { "type": "integer", "format": "int64" } },
+        "example": { "current_correct_streak": 1 }
+      },
+      "AttemptCounters": {
+        "type": "object",
+        "required": ["attempts", "correct", "solved", "xp"],
+        "properties": {
+          "attempts": { "type": "integer", "format": "int64", "description": "Number of attempts." },
+          "correct": { "type": "integer", "format": "int64", "description": "Number of correct answers." },
+          "solved": { "type": "integer", "format": "int64", "description": "Number of questions solved for the first time." },
+          "xp": { "type": "integer", "format": "int64", "description": "XP earned." }
+        }
+      },
+      "DailyStats": {
+        "allOf": [
+          { "$ref": "#/components/schemas/AttemptCounters" },
+          { "type": "object", "required": ["date"], "properties": { "date": { "type": "string", "format": "date" } } }
+        ],
+        "example": { "date": "2026-11-23", "attempts": 1, "correct": 1, "solved": 1, "xp": 20 }
+      },
+      "TopicStats": {
+        "allOf": [
+          { "$ref": "#/components/schemas/AttemptCounters" },
+          { "type": "object", "required": ["topic"], "properties": { "topic": { "type": "string" } } }
+        ],
+        "example": { "topic": "binary_numbers", "attempts": 1, "correct": 1, "solved": 1, "xp": 20 }
+      },
+      "WeeklyStats": {
+        "type": "object",
+        "required": ["days"],
+        "properties": { "days": { "type": "array", "maxItems": 7, "items": { "$ref": "#/components/schemas/DailyStats" } } },
+        "example": { "days": [{ "date": "2026-11-23", "attempts": 1, "correct": 1, "solved": 1, "xp": 20 }] }
+      },
+      "AllTopicStats": {
+        "type": "object",
+        "required": ["topics"],
+        "properties": { "topics": { "type": "array", "items": { "$ref": "#/components/schemas/TopicStats" } } },
+        "example": { "topics": [{ "topic": "binary_numbers", "attempts": 1, "correct": 1, "solved": 1, "xp": 20 }] }
+      }
+    },
+    "responses": {
+      "BadRequest": {
+        "description": "Invalid request parameter or body.",
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+      },
+      "Unauthorized": {
+        "description": "The access token is missing, invalid, or expired.",
+        "content": {
+          "text/plain": {
+            "schema": { "type": "string" },
+            "examples": {
+              "missingToken": { "value": "expected bearer token\n" },
+              "invalidToken": { "value": "invalid token\n" }
+            }
+          }
+        }
+      },
+      "NotFound": {
+        "description": "The requested user, question, or statistics were not found.",
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+      },
+      "RequestCanceled": {
+        "description": "The request was canceled.",
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" }, "example": { "error": "request canceled" } } }
+      },
+      "BodyTooLarge": {
+        "description": "The request body exceeds 1 MiB.",
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" }, "example": { "error": "request body must not exceed 1 MiB" } } }
+      },
+      "InternalError": {
+        "description": "An internal error occurred while processing the request.",
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+      },
+      "Unavailable": {
+        "description": "The service is temporarily unavailable.",
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+      },
+      "Timeout": {
+        "description": "The request timed out.",
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" }, "example": { "error": "request timed out" } } }
+      }
+    }
+  }
+}

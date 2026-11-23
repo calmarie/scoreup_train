@@ -54,6 +54,14 @@ Compose поднимает PostgreSQL, Redis и Kafka, применяет миг
 
 ## HTTP API
 
+Чтобы посмотреть документацию в Swagger UI, запустите из корня проекта:
+
+```bash
+python3 -m http.server 8081 --bind 127.0.0.1 --directory docs
+```
+
+Откройте [http://127.0.0.1:8081/swagger.html](http://127.0.0.1:8081/swagger.html). Страница читает [спецификацию OpenAPI](docs/openapi.json) и загружает Swagger UI из интернета. Для отправки запросов можно импортировать этот же JSON в Postman.
+
 На маршрутах задач и статистики передавайте `Authorization: Bearer <access_token>`. Gateway берёт ID пользователя из токена.
 
 | Метод и путь | Что делает |
