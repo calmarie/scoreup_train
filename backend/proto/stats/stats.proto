@@ -11,10 +11,24 @@ service Stats {
     rpc GetXP(UserStatsRequest) returns (GetXPReply);
     rpc GetCurrentStreak(UserStatsRequest) returns (GetCurrentStreakReply);
     rpc GetCurrentCorrectStreak(UserStatsRequest) returns (GetCurrentCorrectStreakReply);
+    rpc GetDailyStats(GetDailyStatsRequest) returns (DailyStats);
+    rpc GetWeeklyStats(UserStatsRequest) returns (GetWeeklyStatsReply);
+    rpc GetTopicStats(GetTopicStatsRequest) returns (TopicStats);
+    rpc GetAllTopicStats(UserStatsRequest) returns (GetAllTopicStatsReply);
 }
 
 message UserStatsRequest {
     int64 user_id = 1;
+}
+
+message GetDailyStatsRequest {
+    int64 user_id = 1;
+    google.type.Date date = 2;
+}
+
+message GetTopicStatsRequest {
+    int64 user_id = 1;
+    string topic = 2;
 }
 
 message GetStatsReply {
@@ -30,6 +44,30 @@ message GetStatsReply {
     int64 best_correct_streak = 10;
     google.type.Date last_solved_on = 11; // UTC calendar date. Unset until the first solve.
     double accuracy_percent = 12;
+}
+
+message DailyStats {
+    google.type.Date date = 1;
+    int64 attempts = 2;
+    int64 correct = 3;
+    int64 solved = 4;
+    int64 xp = 5;
+}
+
+message TopicStats {
+    string topic = 1;
+    int64 attempts = 2;
+    int64 correct = 3;
+    int64 solved = 4;
+    int64 xp = 5;
+}
+
+message GetWeeklyStatsReply {
+    repeated DailyStats days = 1;
+}
+
+message GetAllTopicStatsReply {
+    repeated TopicStats topics = 1;
 }
 
 message GetXPReply {

@@ -23,6 +23,10 @@ const (
 	Stats_GetXP_FullMethodName                   = "/stats.Stats/GetXP"
 	Stats_GetCurrentStreak_FullMethodName        = "/stats.Stats/GetCurrentStreak"
 	Stats_GetCurrentCorrectStreak_FullMethodName = "/stats.Stats/GetCurrentCorrectStreak"
+	Stats_GetDailyStats_FullMethodName           = "/stats.Stats/GetDailyStats"
+	Stats_GetWeeklyStats_FullMethodName          = "/stats.Stats/GetWeeklyStats"
+	Stats_GetTopicStats_FullMethodName           = "/stats.Stats/GetTopicStats"
+	Stats_GetAllTopicStats_FullMethodName        = "/stats.Stats/GetAllTopicStats"
 )
 
 // StatsClient is the client API for Stats service.
@@ -33,6 +37,10 @@ type StatsClient interface {
 	GetXP(ctx context.Context, in *UserStatsRequest, opts ...grpc.CallOption) (*GetXPReply, error)
 	GetCurrentStreak(ctx context.Context, in *UserStatsRequest, opts ...grpc.CallOption) (*GetCurrentStreakReply, error)
 	GetCurrentCorrectStreak(ctx context.Context, in *UserStatsRequest, opts ...grpc.CallOption) (*GetCurrentCorrectStreakReply, error)
+	GetDailyStats(ctx context.Context, in *GetDailyStatsRequest, opts ...grpc.CallOption) (*DailyStats, error)
+	GetWeeklyStats(ctx context.Context, in *UserStatsRequest, opts ...grpc.CallOption) (*GetWeeklyStatsReply, error)
+	GetTopicStats(ctx context.Context, in *GetTopicStatsRequest, opts ...grpc.CallOption) (*TopicStats, error)
+	GetAllTopicStats(ctx context.Context, in *UserStatsRequest, opts ...grpc.CallOption) (*GetAllTopicStatsReply, error)
 }
 
 type statsClient struct {
@@ -83,6 +91,46 @@ func (c *statsClient) GetCurrentCorrectStreak(ctx context.Context, in *UserStats
 	return out, nil
 }
 
+func (c *statsClient) GetDailyStats(ctx context.Context, in *GetDailyStatsRequest, opts ...grpc.CallOption) (*DailyStats, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DailyStats)
+	err := c.cc.Invoke(ctx, Stats_GetDailyStats_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *statsClient) GetWeeklyStats(ctx context.Context, in *UserStatsRequest, opts ...grpc.CallOption) (*GetWeeklyStatsReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetWeeklyStatsReply)
+	err := c.cc.Invoke(ctx, Stats_GetWeeklyStats_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *statsClient) GetTopicStats(ctx context.Context, in *GetTopicStatsRequest, opts ...grpc.CallOption) (*TopicStats, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(TopicStats)
+	err := c.cc.Invoke(ctx, Stats_GetTopicStats_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *statsClient) GetAllTopicStats(ctx context.Context, in *UserStatsRequest, opts ...grpc.CallOption) (*GetAllTopicStatsReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetAllTopicStatsReply)
+	err := c.cc.Invoke(ctx, Stats_GetAllTopicStats_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // StatsServer is the server API for Stats service.
 // All implementations must embed UnimplementedStatsServer
 // for forward compatibility.
@@ -91,6 +139,10 @@ type StatsServer interface {
 	GetXP(context.Context, *UserStatsRequest) (*GetXPReply, error)
 	GetCurrentStreak(context.Context, *UserStatsRequest) (*GetCurrentStreakReply, error)
 	GetCurrentCorrectStreak(context.Context, *UserStatsRequest) (*GetCurrentCorrectStreakReply, error)
+	GetDailyStats(context.Context, *GetDailyStatsRequest) (*DailyStats, error)
+	GetWeeklyStats(context.Context, *UserStatsRequest) (*GetWeeklyStatsReply, error)
+	GetTopicStats(context.Context, *GetTopicStatsRequest) (*TopicStats, error)
+	GetAllTopicStats(context.Context, *UserStatsRequest) (*GetAllTopicStatsReply, error)
 	mustEmbedUnimplementedStatsServer()
 }
 
@@ -112,6 +164,18 @@ func (UnimplementedStatsServer) GetCurrentStreak(context.Context, *UserStatsRequ
 }
 func (UnimplementedStatsServer) GetCurrentCorrectStreak(context.Context, *UserStatsRequest) (*GetCurrentCorrectStreakReply, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetCurrentCorrectStreak not implemented")
+}
+func (UnimplementedStatsServer) GetDailyStats(context.Context, *GetDailyStatsRequest) (*DailyStats, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetDailyStats not implemented")
+}
+func (UnimplementedStatsServer) GetWeeklyStats(context.Context, *UserStatsRequest) (*GetWeeklyStatsReply, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetWeeklyStats not implemented")
+}
+func (UnimplementedStatsServer) GetTopicStats(context.Context, *GetTopicStatsRequest) (*TopicStats, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetTopicStats not implemented")
+}
+func (UnimplementedStatsServer) GetAllTopicStats(context.Context, *UserStatsRequest) (*GetAllTopicStatsReply, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetAllTopicStats not implemented")
 }
 func (UnimplementedStatsServer) mustEmbedUnimplementedStatsServer() {}
 func (UnimplementedStatsServer) testEmbeddedByValue()               {}
@@ -206,6 +270,78 @@ func _Stats_GetCurrentCorrectStreak_Handler(srv interface{}, ctx context.Context
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Stats_GetDailyStats_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetDailyStatsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StatsServer).GetDailyStats(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Stats_GetDailyStats_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StatsServer).GetDailyStats(ctx, req.(*GetDailyStatsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Stats_GetWeeklyStats_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UserStatsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StatsServer).GetWeeklyStats(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Stats_GetWeeklyStats_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StatsServer).GetWeeklyStats(ctx, req.(*UserStatsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Stats_GetTopicStats_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetTopicStatsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StatsServer).GetTopicStats(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Stats_GetTopicStats_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StatsServer).GetTopicStats(ctx, req.(*GetTopicStatsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Stats_GetAllTopicStats_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UserStatsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StatsServer).GetAllTopicStats(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Stats_GetAllTopicStats_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StatsServer).GetAllTopicStats(ctx, req.(*UserStatsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Stats_ServiceDesc is the grpc.ServiceDesc for Stats service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -228,6 +364,22 @@ var Stats_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetCurrentCorrectStreak",
 			Handler:    _Stats_GetCurrentCorrectStreak_Handler,
+		},
+		{
+			MethodName: "GetDailyStats",
+			Handler:    _Stats_GetDailyStats_Handler,
+		},
+		{
+			MethodName: "GetWeeklyStats",
+			Handler:    _Stats_GetWeeklyStats_Handler,
+		},
+		{
+			MethodName: "GetTopicStats",
+			Handler:    _Stats_GetTopicStats_Handler,
+		},
+		{
+			MethodName: "GetAllTopicStats",
+			Handler:    _Stats_GetAllTopicStats_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

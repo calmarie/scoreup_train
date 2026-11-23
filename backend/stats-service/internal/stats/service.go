@@ -42,9 +42,27 @@ func (s *Service) GetCurrentCorrectStreak(ctx context.Context, userID int64) (in
 	return s.repository.GetCurrentCorrectStreak(ctx, userID)
 }
 
-// Save updates the user's totals and returns false if the attempt was already counted.
+func (s *Service) GetDailyStats(ctx context.Context, userID int64, day time.Time) (UserDailyStats, error) {
+	return s.repository.GetDailyStats(ctx, userID, eventDay(day))
+}
+
+func (s *Service) GetWeeklyStats(ctx context.Context, userID int64) ([]UserDailyStats, error) {
+	today := eventDay(time.Now())
+	return s.repository.GetDailyStatsRange(ctx, userID, today.AddDate(0, 0, -6), today)
+}
+
+func (s *Service) GetTopicStats(ctx context.Context, userID int64, topic string) (UserTopicStats, error) {
+	return s.repository.GetTopicStats(ctx, userID, topic)
+}
+
+func (s *Service) GetAllTopicStats(ctx context.Context, userID int64) ([]UserTopicStats, error) {
+	return s.repository.GetAllTopicStats(ctx, userID)
+}
+
+// Save updates the user's stats and returns false if the attempt was already counted.
 func (s *Service) Save(ctx context.Context, event QuestionAttemptEvent) (bool, error) {
-	return s.repository.Update(ctx, event.UserID, event.AnswerID, func(totals *UserStats) {
+	day := eventDay(event.OccurredAt)
+	return s.repository.Update(ctx, event, day, func(totals *UserStats) {
 
 		totals.TotalAnswers++
 
@@ -57,7 +75,6 @@ func (s *Service) Save(ctx context.Context, event QuestionAttemptEvent) (bool, e
 			totals.UniqueSolved++
 		}
 
-		day := event.OccurredAt.UTC().Truncate(24 * time.Hour)
 		active := newActiveDay(totals.LastSolvedOn, day, event.IsCorrect)
 		totals.CurrentStreak = dailyStreak(totals.CurrentStreak, totals.LastSolvedOn, day, active)
 		totals.MaxStreak = max(totals.MaxStreak, totals.CurrentStreak)
@@ -69,6 +86,10 @@ func (s *Service) Save(ctx context.Context, event QuestionAttemptEvent) (bool, e
 		totals.CurrentCorrectStreak = correctStreak(totals.CurrentCorrectStreak, event.IsCorrect)
 		totals.BestCorrectStreak = max(totals.BestCorrectStreak, totals.CurrentCorrectStreak)
 	})
+}
+
+func eventDay(occurredAt time.Time) time.Time {
+	return occurredAt.UTC().Truncate(24 * time.Hour)
 }
 
 func newActiveDay(lastSolved *time.Time, day time.Time, correct bool) bool {

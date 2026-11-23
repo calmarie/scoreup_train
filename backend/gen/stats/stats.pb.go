@@ -66,6 +66,110 @@ func (x *UserStatsRequest) GetUserId() int64 {
 	return 0
 }
 
+type GetDailyStatsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	UserId        int64                  `protobuf:"varint,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	Date          *date.Date             `protobuf:"bytes,2,opt,name=date,proto3" json:"date,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetDailyStatsRequest) Reset() {
+	*x = GetDailyStatsRequest{}
+	mi := &file_backend_proto_stats_stats_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetDailyStatsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetDailyStatsRequest) ProtoMessage() {}
+
+func (x *GetDailyStatsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_backend_proto_stats_stats_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetDailyStatsRequest.ProtoReflect.Descriptor instead.
+func (*GetDailyStatsRequest) Descriptor() ([]byte, []int) {
+	return file_backend_proto_stats_stats_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *GetDailyStatsRequest) GetUserId() int64 {
+	if x != nil {
+		return x.UserId
+	}
+	return 0
+}
+
+func (x *GetDailyStatsRequest) GetDate() *date.Date {
+	if x != nil {
+		return x.Date
+	}
+	return nil
+}
+
+type GetTopicStatsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	UserId        int64                  `protobuf:"varint,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	Topic         string                 `protobuf:"bytes,2,opt,name=topic,proto3" json:"topic,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetTopicStatsRequest) Reset() {
+	*x = GetTopicStatsRequest{}
+	mi := &file_backend_proto_stats_stats_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetTopicStatsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetTopicStatsRequest) ProtoMessage() {}
+
+func (x *GetTopicStatsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_backend_proto_stats_stats_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetTopicStatsRequest.ProtoReflect.Descriptor instead.
+func (*GetTopicStatsRequest) Descriptor() ([]byte, []int) {
+	return file_backend_proto_stats_stats_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *GetTopicStatsRequest) GetUserId() int64 {
+	if x != nil {
+		return x.UserId
+	}
+	return 0
+}
+
+func (x *GetTopicStatsRequest) GetTopic() string {
+	if x != nil {
+		return x.Topic
+	}
+	return ""
+}
+
 type GetStatsReply struct {
 	state                protoimpl.MessageState `protogen:"open.v1"`
 	UserId               int64                  `protobuf:"varint,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
@@ -86,7 +190,7 @@ type GetStatsReply struct {
 
 func (x *GetStatsReply) Reset() {
 	*x = GetStatsReply{}
-	mi := &file_backend_proto_stats_stats_proto_msgTypes[1]
+	mi := &file_backend_proto_stats_stats_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -98,7 +202,7 @@ func (x *GetStatsReply) String() string {
 func (*GetStatsReply) ProtoMessage() {}
 
 func (x *GetStatsReply) ProtoReflect() protoreflect.Message {
-	mi := &file_backend_proto_stats_stats_proto_msgTypes[1]
+	mi := &file_backend_proto_stats_stats_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -111,7 +215,7 @@ func (x *GetStatsReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetStatsReply.ProtoReflect.Descriptor instead.
 func (*GetStatsReply) Descriptor() ([]byte, []int) {
-	return file_backend_proto_stats_stats_proto_rawDescGZIP(), []int{1}
+	return file_backend_proto_stats_stats_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *GetStatsReply) GetUserId() int64 {
@@ -198,6 +302,246 @@ func (x *GetStatsReply) GetAccuracyPercent() float64 {
 	return 0
 }
 
+type DailyStats struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Date          *date.Date             `protobuf:"bytes,1,opt,name=date,proto3" json:"date,omitempty"`
+	Attempts      int64                  `protobuf:"varint,2,opt,name=attempts,proto3" json:"attempts,omitempty"`
+	Correct       int64                  `protobuf:"varint,3,opt,name=correct,proto3" json:"correct,omitempty"`
+	Solved        int64                  `protobuf:"varint,4,opt,name=solved,proto3" json:"solved,omitempty"`
+	Xp            int64                  `protobuf:"varint,5,opt,name=xp,proto3" json:"xp,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DailyStats) Reset() {
+	*x = DailyStats{}
+	mi := &file_backend_proto_stats_stats_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DailyStats) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DailyStats) ProtoMessage() {}
+
+func (x *DailyStats) ProtoReflect() protoreflect.Message {
+	mi := &file_backend_proto_stats_stats_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DailyStats.ProtoReflect.Descriptor instead.
+func (*DailyStats) Descriptor() ([]byte, []int) {
+	return file_backend_proto_stats_stats_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *DailyStats) GetDate() *date.Date {
+	if x != nil {
+		return x.Date
+	}
+	return nil
+}
+
+func (x *DailyStats) GetAttempts() int64 {
+	if x != nil {
+		return x.Attempts
+	}
+	return 0
+}
+
+func (x *DailyStats) GetCorrect() int64 {
+	if x != nil {
+		return x.Correct
+	}
+	return 0
+}
+
+func (x *DailyStats) GetSolved() int64 {
+	if x != nil {
+		return x.Solved
+	}
+	return 0
+}
+
+func (x *DailyStats) GetXp() int64 {
+	if x != nil {
+		return x.Xp
+	}
+	return 0
+}
+
+type TopicStats struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Topic         string                 `protobuf:"bytes,1,opt,name=topic,proto3" json:"topic,omitempty"`
+	Attempts      int64                  `protobuf:"varint,2,opt,name=attempts,proto3" json:"attempts,omitempty"`
+	Correct       int64                  `protobuf:"varint,3,opt,name=correct,proto3" json:"correct,omitempty"`
+	Solved        int64                  `protobuf:"varint,4,opt,name=solved,proto3" json:"solved,omitempty"`
+	Xp            int64                  `protobuf:"varint,5,opt,name=xp,proto3" json:"xp,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *TopicStats) Reset() {
+	*x = TopicStats{}
+	mi := &file_backend_proto_stats_stats_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TopicStats) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TopicStats) ProtoMessage() {}
+
+func (x *TopicStats) ProtoReflect() protoreflect.Message {
+	mi := &file_backend_proto_stats_stats_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TopicStats.ProtoReflect.Descriptor instead.
+func (*TopicStats) Descriptor() ([]byte, []int) {
+	return file_backend_proto_stats_stats_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *TopicStats) GetTopic() string {
+	if x != nil {
+		return x.Topic
+	}
+	return ""
+}
+
+func (x *TopicStats) GetAttempts() int64 {
+	if x != nil {
+		return x.Attempts
+	}
+	return 0
+}
+
+func (x *TopicStats) GetCorrect() int64 {
+	if x != nil {
+		return x.Correct
+	}
+	return 0
+}
+
+func (x *TopicStats) GetSolved() int64 {
+	if x != nil {
+		return x.Solved
+	}
+	return 0
+}
+
+func (x *TopicStats) GetXp() int64 {
+	if x != nil {
+		return x.Xp
+	}
+	return 0
+}
+
+type GetWeeklyStatsReply struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Days          []*DailyStats          `protobuf:"bytes,1,rep,name=days,proto3" json:"days,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetWeeklyStatsReply) Reset() {
+	*x = GetWeeklyStatsReply{}
+	mi := &file_backend_proto_stats_stats_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetWeeklyStatsReply) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetWeeklyStatsReply) ProtoMessage() {}
+
+func (x *GetWeeklyStatsReply) ProtoReflect() protoreflect.Message {
+	mi := &file_backend_proto_stats_stats_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetWeeklyStatsReply.ProtoReflect.Descriptor instead.
+func (*GetWeeklyStatsReply) Descriptor() ([]byte, []int) {
+	return file_backend_proto_stats_stats_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *GetWeeklyStatsReply) GetDays() []*DailyStats {
+	if x != nil {
+		return x.Days
+	}
+	return nil
+}
+
+type GetAllTopicStatsReply struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Topics        []*TopicStats          `protobuf:"bytes,1,rep,name=topics,proto3" json:"topics,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetAllTopicStatsReply) Reset() {
+	*x = GetAllTopicStatsReply{}
+	mi := &file_backend_proto_stats_stats_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetAllTopicStatsReply) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetAllTopicStatsReply) ProtoMessage() {}
+
+func (x *GetAllTopicStatsReply) ProtoReflect() protoreflect.Message {
+	mi := &file_backend_proto_stats_stats_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetAllTopicStatsReply.ProtoReflect.Descriptor instead.
+func (*GetAllTopicStatsReply) Descriptor() ([]byte, []int) {
+	return file_backend_proto_stats_stats_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *GetAllTopicStatsReply) GetTopics() []*TopicStats {
+	if x != nil {
+		return x.Topics
+	}
+	return nil
+}
+
 type GetXPReply struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Xp            int64                  `protobuf:"varint,1,opt,name=xp,proto3" json:"xp,omitempty"`
@@ -207,7 +551,7 @@ type GetXPReply struct {
 
 func (x *GetXPReply) Reset() {
 	*x = GetXPReply{}
-	mi := &file_backend_proto_stats_stats_proto_msgTypes[2]
+	mi := &file_backend_proto_stats_stats_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -219,7 +563,7 @@ func (x *GetXPReply) String() string {
 func (*GetXPReply) ProtoMessage() {}
 
 func (x *GetXPReply) ProtoReflect() protoreflect.Message {
-	mi := &file_backend_proto_stats_stats_proto_msgTypes[2]
+	mi := &file_backend_proto_stats_stats_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -232,7 +576,7 @@ func (x *GetXPReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetXPReply.ProtoReflect.Descriptor instead.
 func (*GetXPReply) Descriptor() ([]byte, []int) {
-	return file_backend_proto_stats_stats_proto_rawDescGZIP(), []int{2}
+	return file_backend_proto_stats_stats_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *GetXPReply) GetXp() int64 {
@@ -251,7 +595,7 @@ type GetCurrentStreakReply struct {
 
 func (x *GetCurrentStreakReply) Reset() {
 	*x = GetCurrentStreakReply{}
-	mi := &file_backend_proto_stats_stats_proto_msgTypes[3]
+	mi := &file_backend_proto_stats_stats_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -263,7 +607,7 @@ func (x *GetCurrentStreakReply) String() string {
 func (*GetCurrentStreakReply) ProtoMessage() {}
 
 func (x *GetCurrentStreakReply) ProtoReflect() protoreflect.Message {
-	mi := &file_backend_proto_stats_stats_proto_msgTypes[3]
+	mi := &file_backend_proto_stats_stats_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -276,7 +620,7 @@ func (x *GetCurrentStreakReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetCurrentStreakReply.ProtoReflect.Descriptor instead.
 func (*GetCurrentStreakReply) Descriptor() ([]byte, []int) {
-	return file_backend_proto_stats_stats_proto_rawDescGZIP(), []int{3}
+	return file_backend_proto_stats_stats_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *GetCurrentStreakReply) GetCurrentStreak() int64 {
@@ -295,7 +639,7 @@ type GetCurrentCorrectStreakReply struct {
 
 func (x *GetCurrentCorrectStreakReply) Reset() {
 	*x = GetCurrentCorrectStreakReply{}
-	mi := &file_backend_proto_stats_stats_proto_msgTypes[4]
+	mi := &file_backend_proto_stats_stats_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -307,7 +651,7 @@ func (x *GetCurrentCorrectStreakReply) String() string {
 func (*GetCurrentCorrectStreakReply) ProtoMessage() {}
 
 func (x *GetCurrentCorrectStreakReply) ProtoReflect() protoreflect.Message {
-	mi := &file_backend_proto_stats_stats_proto_msgTypes[4]
+	mi := &file_backend_proto_stats_stats_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -320,7 +664,7 @@ func (x *GetCurrentCorrectStreakReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetCurrentCorrectStreakReply.ProtoReflect.Descriptor instead.
 func (*GetCurrentCorrectStreakReply) Descriptor() ([]byte, []int) {
-	return file_backend_proto_stats_stats_proto_rawDescGZIP(), []int{4}
+	return file_backend_proto_stats_stats_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *GetCurrentCorrectStreakReply) GetCurrentCorrectStreak() int64 {
@@ -336,7 +680,13 @@ const file_backend_proto_stats_stats_proto_rawDesc = "" +
 	"\n" +
 	"\x1fbackend/proto/stats/stats.proto\x12\x05stats\x1a\x16google/type/date.proto\"+\n" +
 	"\x10UserStatsRequest\x12\x17\n" +
-	"\auser_id\x18\x01 \x01(\x03R\x06userId\"\xdc\x03\n" +
+	"\auser_id\x18\x01 \x01(\x03R\x06userId\"V\n" +
+	"\x14GetDailyStatsRequest\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\x03R\x06userId\x12%\n" +
+	"\x04date\x18\x02 \x01(\v2\x11.google.type.DateR\x04date\"E\n" +
+	"\x14GetTopicStatsRequest\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\x03R\x06userId\x12\x14\n" +
+	"\x05topic\x18\x02 \x01(\tR\x05topic\"\xdc\x03\n" +
 	"\rGetStatsReply\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\x03R\x06userId\x12\x0e\n" +
 	"\x02xp\x18\x02 \x01(\x03R\x02xp\x12#\n" +
@@ -352,19 +702,41 @@ const file_backend_proto_stats_stats_proto_rawDesc = "" +
 	"\x13best_correct_streak\x18\n" +
 	" \x01(\x03R\x11bestCorrectStreak\x127\n" +
 	"\x0elast_solved_on\x18\v \x01(\v2\x11.google.type.DateR\flastSolvedOn\x12)\n" +
-	"\x10accuracy_percent\x18\f \x01(\x01R\x0faccuracyPercent\"\x1c\n" +
+	"\x10accuracy_percent\x18\f \x01(\x01R\x0faccuracyPercent\"\x91\x01\n" +
+	"\n" +
+	"DailyStats\x12%\n" +
+	"\x04date\x18\x01 \x01(\v2\x11.google.type.DateR\x04date\x12\x1a\n" +
+	"\battempts\x18\x02 \x01(\x03R\battempts\x12\x18\n" +
+	"\acorrect\x18\x03 \x01(\x03R\acorrect\x12\x16\n" +
+	"\x06solved\x18\x04 \x01(\x03R\x06solved\x12\x0e\n" +
+	"\x02xp\x18\x05 \x01(\x03R\x02xp\"\x80\x01\n" +
+	"\n" +
+	"TopicStats\x12\x14\n" +
+	"\x05topic\x18\x01 \x01(\tR\x05topic\x12\x1a\n" +
+	"\battempts\x18\x02 \x01(\x03R\battempts\x12\x18\n" +
+	"\acorrect\x18\x03 \x01(\x03R\acorrect\x12\x16\n" +
+	"\x06solved\x18\x04 \x01(\x03R\x06solved\x12\x0e\n" +
+	"\x02xp\x18\x05 \x01(\x03R\x02xp\"<\n" +
+	"\x13GetWeeklyStatsReply\x12%\n" +
+	"\x04days\x18\x01 \x03(\v2\x11.stats.DailyStatsR\x04days\"B\n" +
+	"\x15GetAllTopicStatsReply\x12)\n" +
+	"\x06topics\x18\x01 \x03(\v2\x11.stats.TopicStatsR\x06topics\"\x1c\n" +
 	"\n" +
 	"GetXPReply\x12\x0e\n" +
 	"\x02xp\x18\x01 \x01(\x03R\x02xp\">\n" +
 	"\x15GetCurrentStreakReply\x12%\n" +
 	"\x0ecurrent_streak\x18\x01 \x01(\x03R\rcurrentStreak\"T\n" +
 	"\x1cGetCurrentCorrectStreakReply\x124\n" +
-	"\x16current_correct_streak\x18\x01 \x01(\x03R\x14currentCorrectStreak2\x9b\x02\n" +
+	"\x16current_correct_streak\x18\x01 \x01(\x03R\x14currentCorrectStreak2\xaf\x04\n" +
 	"\x05Stats\x129\n" +
 	"\bGetStats\x12\x17.stats.UserStatsRequest\x1a\x14.stats.GetStatsReply\x123\n" +
 	"\x05GetXP\x12\x17.stats.UserStatsRequest\x1a\x11.stats.GetXPReply\x12I\n" +
 	"\x10GetCurrentStreak\x12\x17.stats.UserStatsRequest\x1a\x1c.stats.GetCurrentStreakReply\x12W\n" +
-	"\x17GetCurrentCorrectStreak\x12\x17.stats.UserStatsRequest\x1a#.stats.GetCurrentCorrectStreakReplyB=Z;github.com/calmarie/scoreup_train/backend/gen/stats;statspbb\x06proto3"
+	"\x17GetCurrentCorrectStreak\x12\x17.stats.UserStatsRequest\x1a#.stats.GetCurrentCorrectStreakReply\x12?\n" +
+	"\rGetDailyStats\x12\x1b.stats.GetDailyStatsRequest\x1a\x11.stats.DailyStats\x12E\n" +
+	"\x0eGetWeeklyStats\x12\x17.stats.UserStatsRequest\x1a\x1a.stats.GetWeeklyStatsReply\x12?\n" +
+	"\rGetTopicStats\x12\x1b.stats.GetTopicStatsRequest\x1a\x11.stats.TopicStats\x12I\n" +
+	"\x10GetAllTopicStats\x12\x17.stats.UserStatsRequest\x1a\x1c.stats.GetAllTopicStatsReplyB=Z;github.com/calmarie/scoreup_train/backend/gen/stats;statspbb\x06proto3"
 
 var (
 	file_backend_proto_stats_stats_proto_rawDescOnce sync.Once
@@ -378,30 +750,48 @@ func file_backend_proto_stats_stats_proto_rawDescGZIP() []byte {
 	return file_backend_proto_stats_stats_proto_rawDescData
 }
 
-var file_backend_proto_stats_stats_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
+var file_backend_proto_stats_stats_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
 var file_backend_proto_stats_stats_proto_goTypes = []any{
 	(*UserStatsRequest)(nil),             // 0: stats.UserStatsRequest
-	(*GetStatsReply)(nil),                // 1: stats.GetStatsReply
-	(*GetXPReply)(nil),                   // 2: stats.GetXPReply
-	(*GetCurrentStreakReply)(nil),        // 3: stats.GetCurrentStreakReply
-	(*GetCurrentCorrectStreakReply)(nil), // 4: stats.GetCurrentCorrectStreakReply
-	(*date.Date)(nil),                    // 5: google.type.Date
+	(*GetDailyStatsRequest)(nil),         // 1: stats.GetDailyStatsRequest
+	(*GetTopicStatsRequest)(nil),         // 2: stats.GetTopicStatsRequest
+	(*GetStatsReply)(nil),                // 3: stats.GetStatsReply
+	(*DailyStats)(nil),                   // 4: stats.DailyStats
+	(*TopicStats)(nil),                   // 5: stats.TopicStats
+	(*GetWeeklyStatsReply)(nil),          // 6: stats.GetWeeklyStatsReply
+	(*GetAllTopicStatsReply)(nil),        // 7: stats.GetAllTopicStatsReply
+	(*GetXPReply)(nil),                   // 8: stats.GetXPReply
+	(*GetCurrentStreakReply)(nil),        // 9: stats.GetCurrentStreakReply
+	(*GetCurrentCorrectStreakReply)(nil), // 10: stats.GetCurrentCorrectStreakReply
+	(*date.Date)(nil),                    // 11: google.type.Date
 }
 var file_backend_proto_stats_stats_proto_depIdxs = []int32{
-	5, // 0: stats.GetStatsReply.last_solved_on:type_name -> google.type.Date
-	0, // 1: stats.Stats.GetStats:input_type -> stats.UserStatsRequest
-	0, // 2: stats.Stats.GetXP:input_type -> stats.UserStatsRequest
-	0, // 3: stats.Stats.GetCurrentStreak:input_type -> stats.UserStatsRequest
-	0, // 4: stats.Stats.GetCurrentCorrectStreak:input_type -> stats.UserStatsRequest
-	1, // 5: stats.Stats.GetStats:output_type -> stats.GetStatsReply
-	2, // 6: stats.Stats.GetXP:output_type -> stats.GetXPReply
-	3, // 7: stats.Stats.GetCurrentStreak:output_type -> stats.GetCurrentStreakReply
-	4, // 8: stats.Stats.GetCurrentCorrectStreak:output_type -> stats.GetCurrentCorrectStreakReply
-	5, // [5:9] is the sub-list for method output_type
-	1, // [1:5] is the sub-list for method input_type
-	1, // [1:1] is the sub-list for extension type_name
-	1, // [1:1] is the sub-list for extension extendee
-	0, // [0:1] is the sub-list for field type_name
+	11, // 0: stats.GetDailyStatsRequest.date:type_name -> google.type.Date
+	11, // 1: stats.GetStatsReply.last_solved_on:type_name -> google.type.Date
+	11, // 2: stats.DailyStats.date:type_name -> google.type.Date
+	4,  // 3: stats.GetWeeklyStatsReply.days:type_name -> stats.DailyStats
+	5,  // 4: stats.GetAllTopicStatsReply.topics:type_name -> stats.TopicStats
+	0,  // 5: stats.Stats.GetStats:input_type -> stats.UserStatsRequest
+	0,  // 6: stats.Stats.GetXP:input_type -> stats.UserStatsRequest
+	0,  // 7: stats.Stats.GetCurrentStreak:input_type -> stats.UserStatsRequest
+	0,  // 8: stats.Stats.GetCurrentCorrectStreak:input_type -> stats.UserStatsRequest
+	1,  // 9: stats.Stats.GetDailyStats:input_type -> stats.GetDailyStatsRequest
+	0,  // 10: stats.Stats.GetWeeklyStats:input_type -> stats.UserStatsRequest
+	2,  // 11: stats.Stats.GetTopicStats:input_type -> stats.GetTopicStatsRequest
+	0,  // 12: stats.Stats.GetAllTopicStats:input_type -> stats.UserStatsRequest
+	3,  // 13: stats.Stats.GetStats:output_type -> stats.GetStatsReply
+	8,  // 14: stats.Stats.GetXP:output_type -> stats.GetXPReply
+	9,  // 15: stats.Stats.GetCurrentStreak:output_type -> stats.GetCurrentStreakReply
+	10, // 16: stats.Stats.GetCurrentCorrectStreak:output_type -> stats.GetCurrentCorrectStreakReply
+	4,  // 17: stats.Stats.GetDailyStats:output_type -> stats.DailyStats
+	6,  // 18: stats.Stats.GetWeeklyStats:output_type -> stats.GetWeeklyStatsReply
+	5,  // 19: stats.Stats.GetTopicStats:output_type -> stats.TopicStats
+	7,  // 20: stats.Stats.GetAllTopicStats:output_type -> stats.GetAllTopicStatsReply
+	13, // [13:21] is the sub-list for method output_type
+	5,  // [5:13] is the sub-list for method input_type
+	5,  // [5:5] is the sub-list for extension type_name
+	5,  // [5:5] is the sub-list for extension extendee
+	0,  // [0:5] is the sub-list for field type_name
 }
 
 func init() { file_backend_proto_stats_stats_proto_init() }
@@ -415,7 +805,7 @@ func file_backend_proto_stats_stats_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_backend_proto_stats_stats_proto_rawDesc), len(file_backend_proto_stats_stats_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   5,
+			NumMessages:   11,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

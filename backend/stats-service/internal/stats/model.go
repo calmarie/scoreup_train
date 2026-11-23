@@ -28,6 +28,25 @@ type UserStats struct {
 	LastSolvedOn         *time.Time
 }
 
+type UserDailyStats struct {
+	UserID        int64
+	Date          time.Time
+	Attempts      int64
+	Correct       int64
+	Solved        int64
+	XP            int64
+	ActiveSeconds int64
+}
+
+type UserTopicStats struct {
+	UserID   int64
+	Topic    string
+	Attempts int64
+	Correct  int64
+	Solved   int64
+	XP       int64
+}
+
 type UserStatsDTO struct {
 	UserID               int64      `json:"user_id"`
 	XP                   int64      `json:"xp"`
