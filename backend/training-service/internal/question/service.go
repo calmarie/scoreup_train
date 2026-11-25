@@ -3,7 +3,6 @@ package question
 import (
 	"bytes"
 	"context"
-	"fmt"
 )
 
 type QuestistionService interface {
@@ -16,8 +15,8 @@ type Service struct {
 	publishAttempt func(context.Context, Answer) error
 }
 
-func NewService(repository QuestionRepository, publishAttempt func(context.Context, Answer) error) *Service {
-	return &Service{repository: repository, publishAttempt: publishAttempt}
+func NewService(repository QuestionRepository) *Service {
+	return &Service{repository: repository}
 }
 
 func (s *Service) GetQuestion(ctx context.Context) (Question, error) {
@@ -47,10 +46,6 @@ func (s *Service) SaveAnswer(ctx context.Context, userAns SubmitAnswerRequest) (
 	if err != nil {
 		return Answer{}, err
 	}
-	if s.publishAttempt != nil {
-		if err := s.publishAttempt(ctx, saved); err != nil {
-			return Answer{}, fmt.Errorf("%w (answer %d): %w", ErrPublishAttempt, saved.ID, err)
-		}
-	}
+
 	return saved, nil
 }

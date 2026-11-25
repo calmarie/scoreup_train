@@ -6,7 +6,9 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"strconv"
 
+	"github.com/calmarie/scoreup_train/backend/training-service/internal/outbox"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -85,6 +87,7 @@ func postgresUnavailable(code string) bool {
 		code == "57P01" || code == "57P02" || code == "57P03"
 }
 
+// creates transaction to save answer (with checking is it is correct) and event (for kafka)
 func (r *Repository) SaveAnswer(ctx context.Context, ans Answer) (Answer, error) {
 	tx, err := r.db.Begin(ctx)
 	if err != nil {
@@ -121,6 +124,21 @@ func (r *Repository) SaveAnswer(ctx context.Context, ans Answer) (Answer, error)
 			return Answer{}, err
 		}
 	}
+
+	payload, err := json.Marshal(res.AttemptEvent())
+
+	if err != nil {
+		return Answer{}, fmt.Errorf("encode attempt event: %w", err)
+	}
+
+	if _, err := outbox.SaveEvent(ctx, tx, outbox.Event{
+		Topic:    AttemptTopic,
+		EventKey: strconv.FormatInt(res.UserID, 10),
+		Payload:  payload,
+	}); err != nil {
+		return Answer{}, err
+	}
+
 	if err := tx.Commit(ctx); err != nil {
 		return Answer{}, fmt.Errorf("commit save answer: %w", err)
 	}

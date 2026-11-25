@@ -10,6 +10,7 @@ import (
 	"syscall"
 
 	pb "github.com/calmarie/scoreup_train/backend/gen/training"
+	"github.com/calmarie/scoreup_train/backend/training-service/internal/outbox"
 	"github.com/calmarie/scoreup_train/backend/training-service/internal/question"
 	"github.com/calmarie/scoreup_train/backend/training-service/kafka"
 	"github.com/calmarie/scoreup_train/backend/training-service/postgres"
@@ -54,14 +55,10 @@ func run(logger *slog.Logger) error {
 	}
 	defer kafkaClient.Close()
 
-	publishAttempt := func(ctx context.Context, answer question.Answer) error {
-		if err := kafka.Produce(ctx, logger, kafkaClient, answer); err != nil {
-			logger.ErrorContext(ctx, "publish saved attempt", "answer_id", answer.ID, "error", err)
-			return err
-		}
-		return nil
-	}
-	questionService := question.NewService(question.NewRepository(db), publishAttempt)
+	relay := outbox.NewRelay(outbox.NewRepository(db))
+	go relay.Relay(ctx, kafkaClient, logger)
+
+	questionService := question.NewService(question.NewRepository(db))
 	srv := &trainingGRPCserver{service: questionService}
 
 	creds, err := credentials.NewServerTLSFromFile(

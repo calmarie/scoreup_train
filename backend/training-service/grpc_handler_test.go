@@ -41,7 +41,7 @@ func TestGRPCGetQuestionMapsServiceResult(t *testing.T) {
 		Text: "2 + 2?", ImageURL: &imageURL, Options: json.RawMessage(`["3","4"]`),
 		Explanation: &explanation, Data: json.RawMessage(`{"source":"test"}`), IsActive: true, XP: 75,
 	}}
-	srv := &trainingGRPCserver{service: question.NewService(repo, nil)}
+	srv := &trainingGRPCserver{service: question.NewService(repo)}
 
 	got, err := srv.GetQuestion(context.Background(), &pb.GetQuestionRequest{})
 	if err != nil {
@@ -58,7 +58,7 @@ func TestGRPCGetQuestionMapsServiceResult(t *testing.T) {
 }
 
 func TestGRPCGetQuestionMapsNotFound(t *testing.T) {
-	srv := &trainingGRPCserver{service: question.NewService(questionRepositoryForGRPC{err: question.ErrQuestionNotFound}, nil)}
+	srv := &trainingGRPCserver{service: question.NewService(questionRepositoryForGRPC{err: question.ErrQuestionNotFound})}
 
 	_, err := srv.GetQuestion(context.Background(), &pb.GetQuestionRequest{})
 	if status.Code(err) != codes.NotFound {
@@ -91,7 +91,7 @@ func (r *answerRepositoryForGRPC) SaveAnswer(_ context.Context, answer question.
 func TestGRPCSaveAnswerMapsRequestAndTimestamp(t *testing.T) {
 	createdAt := time.Date(2026, time.November, 14, 12, 30, 45, 123456000, time.UTC)
 	repo := &answerRepositoryForGRPC{createdAt: createdAt}
-	srv := &trainingGRPCserver{service: question.NewService(repo, nil)}
+	srv := &trainingGRPCserver{service: question.NewService(repo)}
 	request := &pb.SaveAnswerRequest{UserId: 7, QuestionId: 3, AnswerJson: []byte(`"yes"`)}
 
 	got, err := srv.SaveAnswer(context.Background(), request)
