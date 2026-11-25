@@ -10,6 +10,7 @@ import (
 	"syscall"
 
 	pb "github.com/calmarie/scoreup_train/backend/gen/training"
+	"github.com/calmarie/scoreup_train/backend/training-service/internal/handler"
 	"github.com/calmarie/scoreup_train/backend/training-service/internal/outbox"
 	"github.com/calmarie/scoreup_train/backend/training-service/internal/question"
 	"github.com/calmarie/scoreup_train/backend/training-service/kafka"
@@ -17,11 +18,6 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 )
-
-type trainingGRPCserver struct {
-	pb.UnimplementedTrainingServer
-	service *question.Service
-}
 
 func run(logger *slog.Logger) error {
 
@@ -59,7 +55,6 @@ func run(logger *slog.Logger) error {
 	go relay.Relay(ctx, kafkaClient, logger)
 
 	questionService := question.NewService(question.NewRepository(db))
-	srv := &trainingGRPCserver{service: questionService}
 
 	creds, err := credentials.NewServerTLSFromFile(
 		"certs/training.crt",
@@ -70,7 +65,7 @@ func run(logger *slog.Logger) error {
 	}
 
 	grpcServer := grpc.NewServer(grpc.Creds(creds))
-	pb.RegisterTrainingServer(grpcServer, srv)
+	pb.RegisterTrainingServer(grpcServer, handler.NewHandler(questionService))
 
 	serveErr := make(chan error, 1)
 

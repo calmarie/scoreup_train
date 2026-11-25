@@ -1,4 +1,4 @@
-package main
+package handler
 
 import (
 	"context"
@@ -32,7 +32,7 @@ func (grpcSessionIssuer) RefreshAccess(context.Context, string) (auth.Session, e
 }
 
 func TestCreateUserReplyContainsUserAndTokens(t *testing.T) {
-	srv := &userGRPCserver{usersService: users.NewService(grpcUserRepository{}, grpcSessionIssuer{})}
+	srv := NewHandler(users.NewService(grpcUserRepository{}, grpcSessionIssuer{}))
 	reply, err := srv.CreateUser(context.Background(), &pb.CreateUserRequest{TelegramId: 123})
 	if err != nil {
 		t.Fatal(err)

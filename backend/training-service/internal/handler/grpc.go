@@ -1,4 +1,4 @@
-package main
+package handler
 
 import (
 	"context"
@@ -11,7 +11,16 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-func (s *trainingGRPCserver) GetQuestion(
+type Handler struct {
+	pb.UnimplementedTrainingServer
+	service *question.Service
+}
+
+func NewHandler(service *question.Service) *Handler {
+	return &Handler{service: service}
+}
+
+func (s *Handler) GetQuestion(
 	ctx context.Context,
 	req *pb.GetQuestionRequest,
 ) (*pb.GetQuestionReply, error) {
@@ -38,7 +47,7 @@ func (s *trainingGRPCserver) GetQuestion(
 }
 
 // SaveAnswer returns the question's configured XP even for incorrect or repeated answers.
-func (s *trainingGRPCserver) SaveAnswer(
+func (s *Handler) SaveAnswer(
 	ctx context.Context,
 	req *pb.SaveAnswerRequest,
 ) (*pb.SaveAnswerReply, error) {

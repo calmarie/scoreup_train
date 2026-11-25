@@ -13,16 +13,12 @@ import (
 	"github.com/calmarie/scoreup_train/backend/user-service/internal/auth"
 	"github.com/calmarie/scoreup_train/backend/user-service/internal/auth/access"
 	"github.com/calmarie/scoreup_train/backend/user-service/internal/auth/refresh"
+	"github.com/calmarie/scoreup_train/backend/user-service/internal/handler"
 	"github.com/calmarie/scoreup_train/backend/user-service/internal/users"
 	"github.com/calmarie/scoreup_train/backend/user-service/postgres"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 )
-
-type userGRPCserver struct {
-	pb.UnimplementedUserServer
-	usersService *users.Service
-}
 
 // run drains in-flight RPCs before closing the database pool on shutdown.
 func run(logger *slog.Logger) error {
@@ -71,7 +67,6 @@ func run(logger *slog.Logger) error {
 
 	issuer := auth.NewIssuer(signer, refresh.NewRedisStore(rdb))
 	usersService := users.NewService(users.NewRepository(db), issuer)
-	srv := &userGRPCserver{usersService: usersService}
 
 	creds, err := credentials.NewServerTLSFromFile(
 		"certs/user.crt",
@@ -82,7 +77,7 @@ func run(logger *slog.Logger) error {
 	}
 
 	grpcServer := grpc.NewServer(grpc.Creds(creds))
-	pb.RegisterUserServer(grpcServer, srv)
+	pb.RegisterUserServer(grpcServer, handler.NewHandler(usersService))
 
 	serveErr := make(chan error, 1)
 

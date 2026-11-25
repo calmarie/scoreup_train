@@ -1,4 +1,4 @@
-package main
+package handler
 
 import (
 	"context"
@@ -11,7 +11,16 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-func (s *userGRPCserver) CreateUser(
+type Handler struct {
+	pb.UnimplementedUserServer
+	service *users.Service
+}
+
+func NewHandler(service *users.Service) *Handler {
+	return &Handler{service: service}
+}
+
+func (s *Handler) CreateUser(
 	ctx context.Context,
 	req *pb.CreateUserRequest,
 ) (*pb.AuthReply, error) {
@@ -19,7 +28,7 @@ func (s *userGRPCserver) CreateUser(
 		return nil, status.Error(codes.InvalidArgument, "invalid telegram id")
 	}
 
-	result, err := s.usersService.CreateUser(ctx, req.TelegramId)
+	result, err := s.service.CreateUser(ctx, req.TelegramId)
 	if err != nil {
 		return nil, toGRPCError(err)
 	}
@@ -38,12 +47,12 @@ func (s *userGRPCserver) CreateUser(
 
 }
 
-func (s *userGRPCserver) GetUserByTelegramID(
+func (s *Handler) GetUserByTelegramID(
 	ctx context.Context,
 	req *pb.GetUserByTelegramIDRequest,
 ) (*pb.UserReply, error) {
 
-	user, err := s.usersService.GetUserByTelegramID(ctx, req.TelegramId)
+	user, err := s.service.GetUserByTelegramID(ctx, req.TelegramId)
 	if err != nil {
 		return nil, toGRPCError(err)
 	}
@@ -56,11 +65,11 @@ func (s *userGRPCserver) GetUserByTelegramID(
 
 }
 
-func (s *userGRPCserver) RefreshAccess(ctx context.Context, req *pb.RefreshAccessRequest) (*pb.RefreshAccessReply, error) {
+func (s *Handler) RefreshAccess(ctx context.Context, req *pb.RefreshAccessRequest) (*pb.RefreshAccessReply, error) {
 	if req.GetTelegramId() <= 0 || req.GetRefreshToken() == "" {
 		return nil, status.Error(codes.InvalidArgument, "invalid refresh request")
 	}
-	session, err := s.usersService.RefreshAccess(ctx, req.GetRefreshToken(), req.GetTelegramId())
+	session, err := s.service.RefreshAccess(ctx, req.GetRefreshToken(), req.GetTelegramId())
 	if err != nil {
 		return nil, toGRPCError(err)
 	}
