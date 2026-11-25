@@ -6,9 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
-	"strconv"
 
-	"github.com/calmarie/scoreup_train/backend/training-service/internal/outbox"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -16,8 +14,6 @@ import (
 
 type QuestionRepository interface {
 	GetQuestion(ctx context.Context) (Question, error)
-	SaveAnswer(ctx context.Context, ans Answer) (Answer, error)
-	GetCorrectAnswer(ctx context.Context, question_id int) (json.RawMessage, error)
 }
 
 type Repository struct {
@@ -81,102 +77,21 @@ func (r *Repository) GetQuestion(ctx context.Context) (Question, error) {
 	return question, nil
 }
 
+func (r *Repository) GetCorrectAnswer(ctx context.Context, questionID int) (json.RawMessage, error) {
+	const query = `SELECT correct_answer FROM questions WHERE id = $1`
+
+	var correctAnswer json.RawMessage
+	if err := r.db.QueryRow(ctx, query, questionID).Scan(&correctAnswer); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrQuestionNotFound
+		}
+		return nil, fmt.Errorf("get correct answer: %w", err)
+	}
+	return correctAnswer, nil
+}
+
 func postgresUnavailable(code string) bool {
 	// Connection errors, insufficient resources, and server shutdown/startup.
 	return len(code) >= 2 && (code[:2] == "08" || code[:2] == "53") ||
 		code == "57P01" || code == "57P02" || code == "57P03"
-}
-
-// creates transaction to save answer (with checking is it is correct) and event (for kafka)
-func (r *Repository) SaveAnswer(ctx context.Context, ans Answer) (Answer, error) {
-	tx, err := r.db.Begin(ctx)
-	if err != nil {
-		return Answer{}, fmt.Errorf("begin save answer: %w", err)
-	}
-	defer tx.Rollback(ctx)
-
-	const sql = `
-		INSERT INTO user_answers (user_id, question_id, answer, is_correct)
-		VALUES ($1, $2, $3, $4)
-		RETURNING id, user_id, question_id, answer, is_correct, created_at,
-			(SELECT xp FROM questions WHERE id = user_answers.question_id),
-			(SELECT topic FROM questions WHERE id = user_answers.question_id),
-			(SELECT difficulty FROM questions WHERE id = user_answers.question_id);`
-
-	var res Answer
-	if err := tx.QueryRow(ctx, sql, ans.UserID, ans.QuestionID, ans.Answer, ans.IsCorrect).Scan(
-		&res.ID,
-		&res.UserID,
-		&res.QuestionID,
-		&res.Answer,
-		&res.IsCorrect,
-		&res.CreatedAt,
-		&res.XP,
-		&res.Topic,
-		&res.Difficulty,
-	); err != nil {
-		return Answer{}, fmt.Errorf("insert answer: %w", err)
-	}
-
-	if res.IsCorrect {
-		res.FirstSolve, err = markQuestionSolved(ctx, tx, res)
-		if err != nil {
-			return Answer{}, err
-		}
-	}
-
-	payload, err := json.Marshal(res.AttemptEvent())
-
-	if err != nil {
-		return Answer{}, fmt.Errorf("encode attempt event: %w", err)
-	}
-
-	if _, err := outbox.SaveEvent(ctx, tx, outbox.Event{
-		Topic:    AttemptTopic,
-		EventKey: strconv.FormatInt(res.UserID, 10),
-		Payload:  payload,
-	}); err != nil {
-		return Answer{}, err
-	}
-
-	if err := tx.Commit(ctx); err != nil {
-		return Answer{}, fmt.Errorf("commit save answer: %w", err)
-	}
-	return res, nil
-}
-
-// markQuestionSolved reports whether this transaction recorded the user's first solve for the question.
-func markQuestionSolved(ctx context.Context, tx pgx.Tx, answer Answer) (bool, error) {
-	const sql = `
-		INSERT INTO user_solved_questions (user_id, question_id, solved_at)
-		VALUES ($1, $2, $3)
-		ON CONFLICT (user_id, question_id) DO NOTHING;`
-
-	tag, err := tx.Exec(ctx, sql, answer.UserID, answer.QuestionID, answer.CreatedAt)
-	if err != nil {
-		return false, fmt.Errorf("mark question solved: %w", err)
-	}
-	return tag.RowsAffected() == 1, nil
-}
-
-func (r *Repository) GetCorrectAnswer(ctx context.Context, question_id int) (json.RawMessage, error) {
-
-	sql := `SELECT correct_answer FROM questions
-	WHERE id = $1; `
-
-	row := r.db.QueryRow(ctx, sql, question_id)
-
-	var res json.RawMessage
-	err := row.Scan(
-		&res,
-	)
-
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, ErrQuestionNotFound
-		}
-		return nil, fmt.Errorf("SaveAnswer db error: %w", err)
-	}
-
-	return res, nil
 }

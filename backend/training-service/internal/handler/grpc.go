@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	pb "github.com/calmarie/scoreup_train/backend/gen/training"
+	"github.com/calmarie/scoreup_train/backend/training-service/internal/answer"
 	"github.com/calmarie/scoreup_train/backend/training-service/internal/question"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -13,11 +14,12 @@ import (
 
 type Handler struct {
 	pb.UnimplementedTrainingServer
-	service *question.Service
+	questions *question.Service
+	answers   *answer.Service
 }
 
-func NewHandler(service *question.Service) *Handler {
-	return &Handler{service: service}
+func NewHandler(questions *question.Service, answers *answer.Service) *Handler {
+	return &Handler{questions: questions, answers: answers}
 }
 
 func (s *Handler) GetQuestion(
@@ -25,7 +27,7 @@ func (s *Handler) GetQuestion(
 	req *pb.GetQuestionRequest,
 ) (*pb.GetQuestionReply, error) {
 
-	q, err := s.service.GetQuestion(ctx)
+	q, err := s.questions.GetQuestion(ctx)
 	if err != nil {
 		return nil, toGRPCError(err)
 	}
@@ -52,13 +54,13 @@ func (s *Handler) SaveAnswer(
 	req *pb.SaveAnswerRequest,
 ) (*pb.SaveAnswerReply, error) {
 
-	submit := question.SubmitAnswerRequest{
+	submit := answer.SubmitAnswerRequest{
 		UserID:     req.UserId,
 		QuestionID: int(req.QuestionId),
 		Answer:     req.AnswerJson,
 	}
 
-	ans, err := s.service.SaveAnswer(ctx, submit)
+	ans, err := s.answers.SaveAnswer(ctx, submit)
 	if err != nil {
 		return nil, toGRPCError(err)
 	}
@@ -74,8 +76,6 @@ func (s *Handler) SaveAnswer(
 
 func toGRPCError(err error) error {
 	switch {
-	case errors.Is(err, question.ErrPublishAttempt):
-		return status.Error(codes.Internal, question.ErrPublishAttempt.Error())
 	case errors.Is(err, context.Canceled):
 		return status.Error(codes.Canceled, "request canceled")
 	case errors.Is(err, context.DeadlineExceeded):

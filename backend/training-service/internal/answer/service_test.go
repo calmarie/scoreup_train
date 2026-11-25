@@ -1,18 +1,13 @@
-package question
+package answer
 
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"testing"
 )
 
 type answerRepository struct {
 	saved Answer
-}
-
-func (*answerRepository) GetQuestion(context.Context) (Question, error) {
-	return Question{}, errors.New("unexpected GetQuestion call")
 }
 
 func (*answerRepository) GetCorrectAnswer(context.Context, int) (json.RawMessage, error) {
@@ -25,9 +20,9 @@ func (r *answerRepository) SaveAnswer(_ context.Context, answer Answer) (Answer,
 	return answer, nil
 }
 
-func TestServiceSaveAnswerPublishesSavedAttempt(t *testing.T) {
+func TestServiceSaveAnswer(t *testing.T) {
 	repo := &answerRepository{}
-	service := NewService(repo)
+	service := NewService(repo, repo)
 	request := SubmitAnswerRequest{
 		UserID:     42,
 		QuestionID: 5,

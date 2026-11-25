@@ -1,18 +1,9 @@
 package question
 
-import (
-	"bytes"
-	"context"
-)
-
-type QuestistionService interface {
-	GetQuestion(ctx context.Context) (Question, error)
-	SaveAnswer(ctx context.Context, userAns SubmitAnswerRequest) (Answer, error)
-}
+import "context"
 
 type Service struct {
-	repository     QuestionRepository
-	publishAttempt func(context.Context, Answer) error
+	repository QuestionRepository
 }
 
 func NewService(repository QuestionRepository) *Service {
@@ -21,31 +12,4 @@ func NewService(repository QuestionRepository) *Service {
 
 func (s *Service) GetQuestion(ctx context.Context) (Question, error) {
 	return s.repository.GetQuestion(ctx)
-}
-
-// SaveAnswer commits the attempt before publishing it. A publish error leaves the saved answer in the database.
-func (s *Service) SaveAnswer(ctx context.Context, userAns SubmitAnswerRequest) (Answer, error) {
-
-	correctAns, err := s.repository.GetCorrectAnswer(ctx, userAns.QuestionID)
-
-	if err != nil {
-		return Answer{}, err
-	}
-
-	// (hardcoded) Byte equality makes JSON formatting and array order part of answer matching.
-	isCorrect := bytes.Equal(correctAns, userAns.Answer)
-
-	res := Answer{
-		UserID:     userAns.UserID,
-		QuestionID: userAns.QuestionID,
-		Answer:     userAns.Answer,
-		IsCorrect:  isCorrect,
-	}
-
-	saved, err := s.repository.SaveAnswer(ctx, res)
-	if err != nil {
-		return Answer{}, err
-	}
-
-	return saved, nil
 }

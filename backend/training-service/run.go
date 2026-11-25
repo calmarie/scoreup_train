@@ -10,6 +10,7 @@ import (
 	"syscall"
 
 	pb "github.com/calmarie/scoreup_train/backend/gen/training"
+	"github.com/calmarie/scoreup_train/backend/training-service/internal/answer"
 	"github.com/calmarie/scoreup_train/backend/training-service/internal/handler"
 	"github.com/calmarie/scoreup_train/backend/training-service/internal/outbox"
 	"github.com/calmarie/scoreup_train/backend/training-service/internal/question"
@@ -54,7 +55,9 @@ func run(logger *slog.Logger) error {
 	relay := outbox.NewRelay(outbox.NewRepository(db))
 	go relay.Relay(ctx, kafkaClient, logger)
 
-	questionService := question.NewService(question.NewRepository(db))
+	questionRepo := question.NewRepository(db)
+	questionService := question.NewService(questionRepo)
+	answerService := answer.NewService(answer.NewRepository(db), questionRepo)
 
 	creds, err := credentials.NewServerTLSFromFile(
 		"certs/training.crt",
@@ -65,7 +68,7 @@ func run(logger *slog.Logger) error {
 	}
 
 	grpcServer := grpc.NewServer(grpc.Creds(creds))
-	pb.RegisterTrainingServer(grpcServer, handler.NewHandler(questionService))
+	pb.RegisterTrainingServer(grpcServer, handler.NewHandler(questionService, answerService))
 
 	serveErr := make(chan error, 1)
 

@@ -1,4 +1,4 @@
-package question
+package main
 
 import (
 	"bytes"
@@ -9,6 +9,8 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/calmarie/scoreup_train/backend/training-service/internal/answer"
+	"github.com/calmarie/scoreup_train/backend/training-service/internal/question"
 	"github.com/calmarie/scoreup_train/backend/training-service/postgres"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
@@ -16,7 +18,8 @@ import (
 
 func TestRepository_GetQuestion_Success(t *testing.T) {
 	ctx := context.Background()
-	repo, db := newTestRepository(t, ctx)
+	db := newTestDB(t, ctx)
+	repo := question.NewRepository(db)
 
 	//insert test data
 
@@ -114,21 +117,21 @@ func TestRepository_GetQuestion_Success(t *testing.T) {
 
 func TestRepository_GetQuestion_NotFound(t *testing.T) {
 	ctx := context.Background()
-	repo, _ := newTestRepository(t, ctx)
+	repo := question.NewRepository(newTestDB(t, ctx))
 
 	//call getQuestion
 
 	_, err := repo.GetQuestion(ctx)
-	if !errors.Is(err, ErrQuestionNotFound) {
+	if !errors.Is(err, question.ErrQuestionNotFound) {
 		t.Fatalf("expected ErrQuestionNotFound, got %v", err)
 	}
 
 }
 
-func newTestRepository(t *testing.T, ctx context.Context) (*Repository, *pgxpool.Pool) {
+func newTestDB(t *testing.T, ctx context.Context) *pgxpool.Pool {
 	t.Helper()
 
-	if err := godotenv.Load("../../../../.env"); err != nil {
+	if err := godotenv.Load("../../.env"); err != nil {
 		t.Fatalf("load env file: %v", err)
 	}
 	testUser := os.Getenv("TRAINING_TEST_POSTGRES_USER")
@@ -164,12 +167,13 @@ func newTestRepository(t *testing.T, ctx context.Context) (*Repository, *pgxpool
 		t.Fatalf("clean questions table: %v", err)
 	}
 
-	return NewRepository(db), db
+	return db
 }
 
 func TestGetCorrectAnswer_Success(t *testing.T) {
 	ctx := context.Background()
-	repo, db := newTestRepository(t, ctx)
+	db := newTestDB(t, ctx)
+	repo := question.NewRepository(db)
 
 	const testData = `INSERT INTO questions (
 		type, difficulty, topic, skill, text, options, correct_answer, explanation, data
@@ -211,10 +215,10 @@ func TestGetCorrectAnswer_Success(t *testing.T) {
 
 func TestGetCorrectAnswer_NotFound(t *testing.T) {
 	ctx := context.Background()
-	repo, _ := newTestRepository(t, ctx)
+	repo := question.NewRepository(newTestDB(t, ctx))
 
 	_, err := repo.GetCorrectAnswer(ctx, 999999)
-	if !errors.Is(err, ErrQuestionNotFound) {
+	if !errors.Is(err, question.ErrQuestionNotFound) {
 		t.Fatalf("error = %v, want ErrQuestionNotFound", err)
 	}
 }
@@ -223,7 +227,8 @@ func TestSaveAnswer_Success(t *testing.T) {
 
 	ctx := context.Background()
 
-	repo, db := newTestRepository(t, ctx)
+	db := newTestDB(t, ctx)
+	repo := answer.NewRepository(db)
 
 	const userID int64 = 42
 
@@ -243,7 +248,7 @@ func TestSaveAnswer_Success(t *testing.T) {
 		t.Fatalf("create question: %v", err)
 	}
 
-	ans := Answer{
+	ans := answer.Answer{
 		UserID:     userID,
 		QuestionID: questionID,
 		Answer:     json.RawMessage(`1`),

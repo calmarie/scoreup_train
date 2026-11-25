@@ -8,6 +8,5 @@ var (
 	ErrMultipleJSONValues  = errors.New("request body must contain one JSON object")
 	ErrRequestBodyTooLarge = errors.New("request body must not exceed 1 MiB")
 	ErrDatabaseUnavailable = errors.New("database temporarily unavailable")
-	ErrPublishAttempt      = errors.New("answer saved, but Kafka publication could not be confirmed")
 	ErrInternalServer      = errors.New("internal server error")
 )

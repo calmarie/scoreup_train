@@ -3,11 +3,11 @@ package handler
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"testing"
 	"time"
 
 	pb "github.com/calmarie/scoreup_train/backend/gen/training"
+	"github.com/calmarie/scoreup_train/backend/training-service/internal/answer"
 	"github.com/calmarie/scoreup_train/backend/training-service/internal/question"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -24,14 +24,6 @@ func (r questionRepositoryForGRPC) GetQuestion(context.Context) (question.Questi
 	return r.value, r.err
 }
 
-func (questionRepositoryForGRPC) SaveAnswer(context.Context, question.Answer) (question.Answer, error) {
-	return question.Answer{}, errors.New("unexpected SaveAnswer call")
-}
-
-func (questionRepositoryForGRPC) GetCorrectAnswer(context.Context, int) (json.RawMessage, error) {
-	return nil, errors.New("unexpected GetCorrectAnswer call")
-}
-
 func TestGRPCGetQuestionMapsServiceResult(t *testing.T) {
 	skill := "arithmetic"
 	imageURL := "https://example.com/image.png"
@@ -41,7 +33,7 @@ func TestGRPCGetQuestionMapsServiceResult(t *testing.T) {
 		Text: "2 + 2?", ImageURL: &imageURL, Options: json.RawMessage(`["3","4"]`),
 		Explanation: &explanation, Data: json.RawMessage(`{"source":"test"}`), IsActive: true, XP: 75,
 	}}
-	srv := NewHandler(question.NewService(repo))
+	srv := NewHandler(question.NewService(repo), nil)
 
 	got, err := srv.GetQuestion(context.Background(), &pb.GetQuestionRequest{})
 	if err != nil {
@@ -58,7 +50,7 @@ func TestGRPCGetQuestionMapsServiceResult(t *testing.T) {
 }
 
 func TestGRPCGetQuestionMapsNotFound(t *testing.T) {
-	srv := NewHandler(question.NewService(questionRepositoryForGRPC{err: question.ErrQuestionNotFound}))
+	srv := NewHandler(question.NewService(questionRepositoryForGRPC{err: question.ErrQuestionNotFound}), nil)
 
 	_, err := srv.GetQuestion(context.Background(), &pb.GetQuestionRequest{})
 	if status.Code(err) != codes.NotFound {
@@ -67,19 +59,15 @@ func TestGRPCGetQuestionMapsNotFound(t *testing.T) {
 }
 
 type answerRepositoryForGRPC struct {
-	saved     question.Answer
+	saved     answer.Answer
 	createdAt time.Time
-}
-
-func (answerRepositoryForGRPC) GetQuestion(context.Context) (question.Question, error) {
-	return question.Question{}, errors.New("unexpected GetQuestion call")
 }
 
 func (answerRepositoryForGRPC) GetCorrectAnswer(context.Context, int) (json.RawMessage, error) {
 	return json.RawMessage(`"yes"`), nil
 }
 
-func (r *answerRepositoryForGRPC) SaveAnswer(_ context.Context, answer question.Answer) (question.Answer, error) {
+func (r *answerRepositoryForGRPC) SaveAnswer(_ context.Context, answer answer.Answer) (answer.Answer, error) {
 	r.saved = answer
 	answer.ID = 19
 	answer.XP = 75
@@ -91,7 +79,7 @@ func (r *answerRepositoryForGRPC) SaveAnswer(_ context.Context, answer question.
 func TestGRPCSaveAnswerMapsRequestAndTimestamp(t *testing.T) {
 	createdAt := time.Date(2026, time.November, 14, 12, 30, 45, 123456000, time.UTC)
 	repo := &answerRepositoryForGRPC{createdAt: createdAt}
-	srv := NewHandler(question.NewService(repo))
+	srv := NewHandler(nil, answer.NewService(repo, repo))
 	request := &pb.SaveAnswerRequest{UserId: 7, QuestionId: 3, AnswerJson: []byte(`"yes"`)}
 
 	got, err := srv.SaveAnswer(context.Background(), request)

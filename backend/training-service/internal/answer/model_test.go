@@ -1,19 +1,17 @@
-package kafka_test
+package answer
 
 import (
 	"testing"
 	"time"
-
-	"github.com/calmarie/scoreup_train/backend/training-service/internal/question"
 )
 
 func TestAttemptEventAwardsXPOnlyForFirstSolve(t *testing.T) {
 	createdAt := time.Date(2026, time.November, 14, 12, 30, 45, 0, time.UTC)
-	answer := question.Answer{
+	answer := Answer{
 		ID: 19, UserID: 7, QuestionID: 3, Topic: "math", Difficulty: 3,
 		XP: 75, IsCorrect: true, FirstSolve: true, CreatedAt: createdAt,
 	}
-	want := question.QuestionAttemptEvent{
+	want := QuestionAttemptEvent{
 		AnswerID: 19, UserID: 7, QuestionID: 3, Topic: "math", Difficulty: 3,
 		XP: 75, IsCorrect: true, FirstSolve: true, OccurredAt: createdAt,
 	}
